@@ -11,6 +11,14 @@
 
 #include <stdint.h>
 
+typedef enum {
+	FLAG_IDLE,
+	FLAG_PROCESAR,
+	FLAG_PARK,
+	FLAG_ERROR,
+	FLAG_TIMEOUT
+}flag_t ;
+
 typedef struct{
     int16_t acelerometros[2][3];
     int16_t giroscopios[2][3];
@@ -20,68 +28,49 @@ typedef struct{
     uint8_t flag_dormir;
 } data;
 typedef struct{
-    float pitch;
-    float roll;
-    uint8_t servo[5];
+    uint8_t servo[7];
     uint8_t error;
     uint8_t dormido;
-} data_procesada;
+} data_pr;
 
 typedef enum{
     ERR_NONE = 0,
 	ERR_TIMEOUT_SYNC,
     ERR_NRF_SYNC_LOST,
     ERR_PCA9685_NOT_FOUND,
-    ERR_ADC_TIMEOUT,
-    ERR_SERVO_OUT_OF_RANGE,
 	ERR_DATA_CORRUPTED
 } ErrorCode;
-
-typedef struct{
-	data dato;
-	uint8_t posicion[5];
-	uint8_t flag_error;
-	uint8_t flag_sinc;
-	uint8_t flag_dormir;
-	uint8_t flag_desperar;
-	ErrorCode Error;
-}Brazo;
 
 /* States */
 typedef enum {
     STATE_INICIO,
-    STATE_SINC,
-    STATE_PROCESAR,
+    STATE_ACTIVO,
     STATE_ERROR,
     STATE_PARK
 } estado;
 
 /* Events */
 typedef enum {
-    EVENT_READY,
-    EVENT_DATA,
-    EVENT_ERR_SINC,
-    EVENT_ERR_SEN,
-    EVENT_ERR_TX,
-    EVENT_DORMIR,
-    EVENT_DESPERTAR,
-    EVENT_PROCESSED,
-    EVENT_RX_FAIL
+    EVENT_NEW_DATA,
+	EVENT_TICK,
+	EVENT_EVIL_DATA,
+    EVENT_TIMEOUT,
+    EVENT_PARKEAR,
+    EVENT_DESPERTAR
 } evento;
 
-/*typedef enum {
-	 FLAG_SINC,
-	 FLAG_DORMIR,
-	 FLAG_IRQ,
-	 FLAG_DESPERTAR,
-	 FLAG_ERROR,
-	 FLAG_IDLE
-}flag ;
-*/
+typedef struct{
+	data dato;
+	data_pr info;
+	uint8_t posicion[5];
+	flag_t flag;
+	ErrorCode Error;
+}Brazo;
+
 
 estado FSM_Brazo(estado current, evento event, Brazo* B);
 estado FSM_Brazo_init(Brazo * B);
-data procesar(data* d);
-void park(Brazo * B);
+data_pr procesar(data* d);
+
 
 #endif /* SRC_BRAZOFSM1_H_ */

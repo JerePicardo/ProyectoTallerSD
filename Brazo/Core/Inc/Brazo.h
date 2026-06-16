@@ -15,7 +15,6 @@
 void UpdateBrazo(Brazo* B);
 void Brazo_MoveJoint(Brazo* B,uint8_t ch, uint8_t deg);
 void Brazo_MoveCartesian(Brazo* B,uint8_t x, uint8_t y, uint8_t z );
-void Brazo_Stop(Brazo* B);
-
+void park(Brazo * B);
 
 #endif /* INC_BRAZO_H_ */

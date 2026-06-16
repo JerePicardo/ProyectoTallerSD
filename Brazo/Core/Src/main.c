@@ -86,22 +86,19 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 #define PLD_S sizeof(data)	 //payload size should be equal to ack_payload size if DPL is not enabled
-data brazo_rx;
-uint8_t tx_addr[5] = {0x45, 0x55, 0x67, 0x10, 0x21};
+data rx_buffer;
+uint8_t addr[5] = {0x45, 0x55, 0x67, 0x10, 0x21};
 volatile uint8_t irq=0;
-volatile uint8_t bottom=0;
-volatile uint8_t sincronizado=0;
-volatile uint8_t despierto=0;
-volatile uint8_t Parked=0;
-volatile uint8_t NuevoDato=0; // hay que llegar hasta aca y ver si la uso
-volatile uint8_t Tick=0;	  // esta creo que va a ser util es el overflow de un timer
+volatile uint8_t Tick=0;
 volatile uint8_t dataR[PLD_S];
 volatile evento event;
-volatile estado state;
+volatile estado actual;
 char txt[32];
-uint32_t ultimo_paquete;
+uint32_t UPaquete_TimeStamp;
+uint32_t UltimoWakeup;
 volatile ErrorCode error_actual = ERR_NONE;
-//volatile flag f1;
+volatile flag_t flag;
+volatile Brazo B = {0};
 /* USER CODE END 0 */
 
 /**
@@ -148,8 +145,8 @@ PCA9685_Init(&hi2c1);
 mensaje_ssd("iniciando PCA96",Font_6x8,0,0,1);
 HAL_Delay(800);
 //-------------------FSM------------------------------------
-Brazo* B;
-evento actual = FSM_Brazo_init(B);
+
+actual = FSM_Brazo_init(&B);
 
 // INICIALIZAR NRF24 Hacer una funcion?? UN NRFinit()? tarea para jere? PutO?
 csn_high();
@@ -176,8 +173,8 @@ nrf24_set_rx_dpl(5, disable);
 nrf24_pipe_pld_size(0, PLD_S);
 nrf24_auto_retr_delay(4);
 nrf24_auto_retr_limit(10);
-nrf24_open_tx_pipe(tx_addr);
-nrf24_open_rx_pipe(0, tx_addr);
+nrf24_open_tx_pipe(addr);
+nrf24_open_rx_pipe(0, addr);
 nrf24_listen();
 ce_high();
 
@@ -188,7 +185,7 @@ ssd1306_WriteString("NRF24 listo", Font_6x8 , White );
 ssd1306_UpdateScreen();
 HAL_Delay(2000);
 //-----------------------------READY----------------------------
-event =EVENT_READY;
+event =EVENT_NEW_DATA;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -198,73 +195,66 @@ event =EVENT_READY;
   while (1)
   {
 //---------------------------UPDATE FSM-----------------------------------
-	  actual=FSM_Brazo(actual,event,B);
+	  actual=FSM_Brazo(actual,event,&B);
 
-//---------------------------SYNC/DATA------------------------------------
-	  if(irq && actual == STATE_SINC){
+	  if(HAL_GetTick() - UPaquete_TimeStamp > 10000)
+	  {
+	      B.Error = ERR_TIMEOUT_SYNC;
+	      event = EVENT_TIMEOUT;
+	  }
+//------------------------------ACTIVO-------------------------------------
+	  if(B.flag==FLAG_PROCESAR){
 		  irq = 0;
+		  B.flag=FLAG_IDLE;
 		  uint8_t stat = nrf24_r_status();
 		  if(stat & (1 << RX_DR)){
-			  sincronizado= 1;
     	  	  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-    	  	  nrf24_receive((uint8_t*)&brazo_rx, sizeof(data));
-    	  	  ultimo_paquete = HAL_GetTick();
+    	  	  nrf24_receive((uint8_t*)&rx_buffer, sizeof(data));
+    	  	  UPaquete_TimeStamp = HAL_GetTick();
     	  	  // Printeo algunos datos
-    	  	  sprintf(txt,"AX:%d", brazo_rx.acelerometros[0][0]);
+    	  	  sprintf(txt,"AX:%d", rx_buffer.acelerometros[0][0]);
     	  	  mensaje_ssd(txt,Font_6x8,0,0,1);
-    	  	  sprintf(txt,"Ay:%d", brazo_rx.acelerometros[0][1]);
+    	  	  sprintf(txt,"Ay:%d", rx_buffer.acelerometros[0][1]);
+    	  	  mensaje_ssd(txt,Font_6x8,0,1,0);
+    	  	  sprintf(txt,"Az:%d", rx_buffer.acelerometros[0][2]);
     	  	  mensaje_ssd(txt,Font_6x8,0,2,0);
-    	  	  sprintf(txt,"Az:%d", brazo_rx.acelerometros[0][2]);
-    	  	  mensaje_ssd(txt,Font_6x8,0,4,0);
-    	  	  mensaje_ssd("Sincronizado",Font_6x8,0,6,0);
+    	  	  mensaje_ssd("Sincronizado",Font_6x8,0,3,0);
     	  	  //HAL_Delay(100);
-    	  	  B->dato=brazo_rx;
-    	  	  event =EVENT_DATA;
-      	  }else {
-      		  sincronizado=0;
-      		//mensaje_ssd("FALLO SYNC",Font_6x8,0,0,1);
-      		  event = EVENT_ERR_SINC;
-      		  actual = STATE_ERROR;
-      		  error_actual = ERR_NRF_SYNC_LOST;//investiga que hace ese registro para saber que tipo de error tenes?
-      		  B->Error=error_actual;
+
+    	  	B.dato = rx_buffer;
+    	  	B.info = procesar(&(B.dato));
+    	  	UpdateBrazo(&B);
+
+      	  }else{
+
+      		  mensaje_ssd("FALLO SYNC",Font_6x8,0,0,1);
+      		  error_actual = ERR_NRF_SYNC_LOST;
+      		  B.Error=error_actual;
+      		  B.flag=FLAG_ERROR;
+
       	  }
 	  }
-	  if(HAL_GetTick()-ultimo_paquete > 1100)
-	  {
-		  event = EVENT_ERR_SINC;
-	  	  actual = STATE_ERROR;
-	      error_actual = ERR_TIMEOUT_SYNC;
-	      B->Error=error_actual;
-	  }
-//-------------------------PROCESAR---------------------------------------
-	  if(actual== STATE_PROCESAR){
-		  procesar(&(B->dato));
-		  	  if(B->dato.flag_dormir==0){
-		  		  event= EVENT_PROCESSED;
-		  		  Parked=0;
-		  	  }else if((B->dato).flag_dormir==1){
-		  		  park(B);
-		  		  event =EVENT_DORMIR;
-		  		  actual=STATE_PARK;
-		  		  Parked = 1;
-		  	  }
-		  UpdateBrazo(B);
-	  }
+
 //-------------------------PARKEADO---------------------------------------
 
-	  if(actual==STATE_PARK && Parked==1 ){
-		  despierto=0;
+	  if(B.flag==FLAG_PARK ){
+
 		  mensaje_ssd("parkeado bien chill",Font_6x8,0,0,1);
-		  HAL_TIM_Base_Start_IT(&htim1);
-
-		 // prendo un timer?? o ya lo tenia prendido??
-		 // hago flags para desparquearlo? QUe trate de sincronizar??
-
+		 // HAL_TIM_Base_Start_IT(&htim1);
+		  park(&B);
+	      B.flag = FLAG_IDLE;
 	  }
-
+	  if(actual == STATE_PARK)
+	  {
+	      if(HAL_GetTick() - UltimoWakeup > 5000)
+	      {
+	          event = EVENT_DESPERTAR;
+	          UltimoWakeup = HAL_GetTick();
+	      }
+	  }
 //-------------------------MANEJAR ERORRES--------------------------------
 
-	  	switch(B->Error)
+	  	switch(B.Error)
 	  	{
 	  	case ERR_NONE:
 	  	    break;
@@ -510,9 +500,9 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;
+  htim1.Init.Prescaler = 15999;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 65535;
+  htim1.Init.Period = 4999;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -637,14 +627,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 	if(GPIO_Pin == GPIO_PIN_0){
 		irq = 1;
+		event= EVENT_NEW_DATA;
 	}
 }
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    if(htim->Instance == TIM2)
+    if(htim->Instance == TIM1)
     {
        event=EVENT_DESPERTAR;
-       despierto=1;
+
     }
 }
 /* USER CODE END 4 */
