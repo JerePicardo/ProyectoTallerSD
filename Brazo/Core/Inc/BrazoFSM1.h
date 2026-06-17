@@ -61,6 +61,7 @@ typedef enum {
 
 typedef struct{
 	data dato;
+	estado actual	;
 	data_pr info;
 	uint8_t posicion[5];
 	flag_t flag;
@@ -68,8 +69,8 @@ typedef struct{
 }Brazo;
 
 
-estado FSM_Brazo(estado current, evento event, Brazo* B);
-estado FSM_Brazo_init(Brazo * B);
+void FSM_Brazo(Brazo * B, evento event);
+void FSM_Brazo_init(Brazo * B);
 data_pr procesar(data* d);
 
 
