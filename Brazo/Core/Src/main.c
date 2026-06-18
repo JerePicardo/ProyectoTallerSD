@@ -184,34 +184,21 @@ int main(void) {
 	/* USER CODE BEGIN WHILE */
 
 	while (1) {
-//---------------------------UPDATE FSM-----------------------------------
-
-		if (HAL_GetTick() - UPaquete_TimeStamp > 10000) {
-			B.Error = ERR_TIMEOUT_SYNC;
-		}
-//------------------------------ACTIVO-------------------------------------
 		if (nrf_irq) {
 			nrf_irq = 0;
+			UPaquete_TimeStamp = HAL_GetTick();
 			uint8_t stat = nrf24_r_status();
 			if (stat & (1 << RX_DR)) {
 				FSM_Brazo(&B, EVENT_NEW_DATA);
 			} else {
 				FSM_Brazo(&B, EVENT_EVIL_DATA);
-
-				mensaje_ssd("FALLO SYNC", Font_6x8, 0, 0, 1);
-				B.Error = ERR_NRF_SYNC_LOST;
 			}
 		}
 
-//-------------------------PARKEADO---------------------------------------
-
-		if (B.flag == FLAG_PARK) {
-
-			mensaje_ssd("parkeado bien chill", Font_6x8, 0, 0, 1);
-			// HAL_TIM_Base_Start_IT(&htim1);
-			park(B.pos);
-			B.flag = FLAG_IDLE;
+		if(HAL_GetTick() - UPaquete_TimeStamp > 10000){
+			FSM_Brazo(&B, EVENT_TIMEOUT);
 		}
+
 		if (B.actual == STATE_PARK) {
 			if (HAL_GetTick() - UltimoWakeup > 5000) {
 				UltimoWakeup = HAL_GetTick();

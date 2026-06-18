@@ -1,4 +1,4 @@
-../Core/Src/Brazo.c:6:6:UpdateBrazo	1
-../Core/Src/Brazo.c:16:6:Brazo_MoveJoint	1
-../Core/Src/Brazo.c:21:6:Brazo_MoveCartesian	1
-../Core/Src/Brazo.c:26:6:park	1
+../Core/Src/Brazo.c:4:6:UpdateBrazo	1
+../Core/Src/Brazo.c:14:6:Brazo_MoveJoint	1
+../Core/Src/Brazo.c:19:6:Brazo_MoveCartesian	1
+../Core/Src/Brazo.c:30:6:park	1
