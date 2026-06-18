@@ -30,8 +30,9 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h \
  ../Core/Inc/ssd1306.h ../Core/Inc/ssd1306_conf.h \
  ../Core/Inc/ssd1306_fonts.h ../Core/Inc/ssd1306.h \
- ../Core/Inc/BrazoFSM1.h ../Core/Inc/Brazo.h ../Core/Inc/pca9685.h \
- ../Core/Inc/NRF24_conf.h ../Core/Inc/NRF24.h \
+ ../Core/Inc/BrazoFSM1.h ../Core/Inc/main.h ../Core/Inc/Brazo.h \
+ ../Core/Inc/pca9685.h ../Core/Inc/NRF24.h ../Core/Inc/ssd1306_fonts.h \
+ ../Core/Inc/Brazo.h ../Core/Inc/NRF24_conf.h ../Core/Inc/NRF24.h \
  ../Core/Inc/NRF24_reg_addresses.h
 ../Core/Inc/main.h:
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h:
@@ -68,8 +69,12 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Core/Inc/ssd1306_fonts.h:
 ../Core/Inc/ssd1306.h:
 ../Core/Inc/BrazoFSM1.h:
+../Core/Inc/main.h:
 ../Core/Inc/Brazo.h:
 ../Core/Inc/pca9685.h:
+../Core/Inc/NRF24.h:
+../Core/Inc/ssd1306_fonts.h:
+../Core/Inc/Brazo.h:
 ../Core/Inc/NRF24_conf.h:
 ../Core/Inc/NRF24.h:
 ../Core/Inc/NRF24_reg_addresses.h:

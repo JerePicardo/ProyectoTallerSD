@@ -46,7 +46,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define PLD_S sizeof(rx_data)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -85,19 +85,15 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#define PLD_S sizeof(data)	 //payload size should be equal to ack_payload size if DPL is not enabled
-data rx_buffer;
 uint8_t addr[5] = { 0x45, 0x55, 0x67, 0x10, 0x21 };
-volatile uint8_t irq = 0;
+uint32_t UPaquete_TimeStamp;
+uint32_t UltimoWakeup;
+Brazo B = { 0 };
+
+volatile uint8_t nrf_irq = 0;
 volatile uint8_t Tick = 0;
 volatile uint8_t dataR[PLD_S];
-volatile evento event;
-char txt[32];
-uint32_t UPaquete_TimeStamp;		//Tiempo al recibir paquete
-uint32_t UltimoWakeup;
-volatile ErrorCode error_actual = ERR_NONE;
 volatile flag_t flag;
-Brazo B = { 0 };
 /* USER CODE END 0 */
 
 /**
@@ -182,8 +178,6 @@ int main(void) {
 	ssd1306_WriteString("NRF24 listo", Font_6x8, White);
 	ssd1306_UpdateScreen();
 	HAL_Delay(2000);
-//-----------------------------READY----------------------------
-	event = EVENT_NEW_DATA;
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -191,42 +185,21 @@ int main(void) {
 
 	while (1) {
 //---------------------------UPDATE FSM-----------------------------------
-		FSM_Brazo(&B, event);
 
 		if (HAL_GetTick() - UPaquete_TimeStamp > 10000) {
 			B.Error = ERR_TIMEOUT_SYNC;
-			event = EVENT_TIMEOUT;
 		}
 //------------------------------ACTIVO-------------------------------------
-		if (B.flag == FLAG_PROCESAR) {
-			irq = 0;
-			B.flag = FLAG_IDLE;
+		if (nrf_irq) {
+			nrf_irq = 0;
 			uint8_t stat = nrf24_r_status();
 			if (stat & (1 << RX_DR)) {
-				HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-				nrf24_receive((uint8_t*) &rx_buffer, sizeof(data));
-				UPaquete_TimeStamp = HAL_GetTick();
-				// Printeo algunos datos
-				sprintf(txt, "AX:%d", rx_buffer.acelerometros[0][0]);
-				mensaje_ssd(txt, Font_6x8, 0, 0, 1);
-				sprintf(txt, "Ay:%d", rx_buffer.acelerometros[0][1]);
-				mensaje_ssd(txt, Font_6x8, 0, 1, 0);
-				sprintf(txt, "Az:%d", rx_buffer.acelerometros[0][2]);
-				mensaje_ssd(txt, Font_6x8, 0, 2, 0);
-				mensaje_ssd("Sincronizado", Font_6x8, 0, 3, 0);
-				//HAL_Delay(100);
-
-				B.dato = rx_buffer;
-				B.info = procesar(&(B.dato));
-				UpdateBrazo(&B);
-
+				FSM_Brazo(&B, EVENT_NEW_DATA);
 			} else {
+				FSM_Brazo(&B, EVENT_EVIL_DATA);
 
 				mensaje_ssd("FALLO SYNC", Font_6x8, 0, 0, 1);
-				error_actual = ERR_NRF_SYNC_LOST;
-				B.Error = error_actual;
-				B.flag = FLAG_ERROR;
-
+				B.Error = ERR_NRF_SYNC_LOST;
 			}
 		}
 
@@ -236,12 +209,11 @@ int main(void) {
 
 			mensaje_ssd("parkeado bien chill", Font_6x8, 0, 0, 1);
 			// HAL_TIM_Base_Start_IT(&htim1);
-			park(&B);
+			park(B.pos);
 			B.flag = FLAG_IDLE;
 		}
 		if (B.actual == STATE_PARK) {
 			if (HAL_GetTick() - UltimoWakeup > 5000) {
-				event = EVENT_DESPERTAR;
 				UltimoWakeup = HAL_GetTick();
 			}
 		}
@@ -595,13 +567,11 @@ static void MX_GPIO_Init(void) {
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 	if (GPIO_Pin == GPIO_PIN_0) {
-		irq = 1;
-		event = EVENT_NEW_DATA;
+		nrf_irq = 1;
 	}
 }
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance == TIM1) {
-		event = EVENT_DESPERTAR;
 
 	}
 }

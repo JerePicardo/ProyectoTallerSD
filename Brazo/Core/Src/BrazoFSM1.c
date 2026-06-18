@@ -5,9 +5,10 @@
  *      Author: PC-Casa
  */
 
-
-
 #include <BrazoFSM1.h>
+
+static rx_data rx_buffer;
+static char txt[32];
 
 /* Process event and execute actions */
 void FSM_Brazo(Brazo *B, evento event){
@@ -15,13 +16,27 @@ void FSM_Brazo(Brazo *B, evento event){
         case STATE_INICIO:
             if (event == EVENT_NEW_DATA) {
                 B->actual = STATE_ACTIVO;
-                B->flag=FLAG_IDLE;
+
+                HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+				nrf24_receive((uint8_t*) &rx_buffer, sizeof(rx_data));
+				// Print para debug
+				sprintf(txt, "AX:%d", rx_buffer.acelerometros[0][0]);
+				mensaje_ssd(txt, Font_6x8, 0, 0, 1);
+				sprintf(txt, "Ay:%d", rx_buffer.acelerometros[0][1]);
+				mensaje_ssd(txt, Font_6x8, 0, 1, 0);
+				sprintf(txt, "Az:%d", rx_buffer.acelerometros[0][2]);
+				mensaje_ssd(txt, Font_6x8, 0, 2, 0);
+				mensaje_ssd("Sincronizado", Font_6x8, 0, 3, 0);
+				//HAL_Delay(100);
+
+				B->last_rf_comm = rx_buffer;
+				B->last_pr_comm = procesar(&(B->last_rf_comm));
+				UpdateBrazo(B->pos);
                 break;
                 }
             break;
         case STATE_ACTIVO:
         	 if (event == EVENT_NEW_DATA) {
-        		 B->actual = STATE_ACTIVO;
         		 B->flag=FLAG_PROCESAR;
         	     break;
         	 }
@@ -61,8 +76,8 @@ void FSM_Brazo_init(Brazo * B) {
 }
 
 
-data_pr procesar(data* d){
-	data_pr out = {0};
+pr_data procesar(rx_data* d){
+	pr_data out = {0};
 
 	    if(d->flag_dormir==1){
 	        out.dormido = 1;

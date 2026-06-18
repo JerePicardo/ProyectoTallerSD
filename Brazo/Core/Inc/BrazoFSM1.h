@@ -10,6 +10,13 @@
 
 
 #include <stdint.h>
+#include <stdio.h>
+
+#include "main.h"
+#include "Brazo.h"
+#include "NRF24.h"
+#include "ssd1306.h"
+#include "ssd1306_fonts.h"
 
 typedef enum {
 	FLAG_IDLE,
@@ -26,12 +33,13 @@ typedef struct{
     uint8_t boton;
     uint8_t secuencia;
     uint8_t flag_dormir;
-} data;
+} rx_data;
+
 typedef struct{
     uint8_t servo[7];
     uint8_t error;
     uint8_t dormido;
-} data_pr;
+} pr_data;
 
 typedef enum{
     ERR_NONE = 0,
@@ -60,18 +68,18 @@ typedef enum {
 } evento;
 
 typedef struct{
-	data dato;
-	estado actual	;
-	data_pr info;
-	uint8_t posicion[5];
+	estado actual;
+	uint8_t pos[7];
 	flag_t flag;
 	ErrorCode Error;
-}Brazo;
+	rx_data last_rf_comm;
+	pr_data last_pr_comm;
+} Brazo;
 
 
 void FSM_Brazo(Brazo * B, evento event);
 void FSM_Brazo_init(Brazo * B);
-data_pr procesar(data* d);
+pr_data procesar(rx_data* d);
 
 
 #endif /* SRC_BRAZOFSM1_H_ */

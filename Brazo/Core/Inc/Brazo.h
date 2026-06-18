@@ -12,9 +12,9 @@
 #include <pca9685.h>
 
 
-void UpdateBrazo(Brazo* B);
-void Brazo_MoveJoint(Brazo* B,uint8_t ch, uint8_t deg);
-void Brazo_MoveCartesian(Brazo* B,uint8_t x, uint8_t y, uint8_t z );
-void park(Brazo * B);
+void UpdateBrazo(uint8_t posicion[7]);
+void Brazo_MoveJoint(uint8_t posicion[7],uint8_t ch, uint8_t deg);
+void Brazo_MoveCartesian(uint8_t posicion[7],uint8_t x, uint8_t y, uint8_t z);
+void park(uint8_t posicion[7]);
 
 #endif /* INC_BRAZO_H_ */
