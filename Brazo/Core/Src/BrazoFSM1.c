@@ -30,7 +30,7 @@ void FSM_Brazo(Brazo *B, evento event) {
 			//HAL_Delay(100);
 
 			B->last_rf_comm = rx_buffer;
-			B->last_pr_comm = procesar(&(B->last_rf_comm));
+			processComm(B);
 			UpdateBrazo(B->pos);
 		}
 		break;
@@ -50,7 +50,7 @@ void FSM_Brazo(Brazo *B, evento event) {
 			//HAL_Delay(100);
 
 			B->last_rf_comm = rx_buffer;
-			B->last_pr_comm = procesar(&(B->last_rf_comm));
+			processComm(B);
 			UpdateBrazo(B->pos);
 			break;
 		case EVENT_TIMEOUT:
@@ -84,7 +84,7 @@ void FSM_Brazo(Brazo *B, evento event) {
 			//HAL_Delay(100);
 
 			B->last_rf_comm = rx_buffer;
-			B->last_pr_comm = procesar(&(B->last_rf_comm));
+			processComm(B);
 			UpdateBrazo(B->pos);
 			break;
 		}
@@ -99,12 +99,11 @@ void FSM_Brazo_init(Brazo *B) {
 	B->actual = STATE_INICIO;
 }
 
-pr_data procesar(rx_data *d) {
-	pr_data out = { 0 };
+void processComm(Brazo * B) {
 
-	if (d->flag_dormir == 1) {
-		out.dormido = 1;
-		return out;
+
+	if (B->last_rf_comm.flag_dormir == 1) {
+		B->last_pr_comm.dormido = 1;
 	}
 	/*
 	 if(!ComprobarRangos(d))
@@ -121,7 +120,5 @@ pr_data procesar(rx_data *d) {
 
 	 CalcularServos(d, &out);
 	 */
-	return out;
-
 }
 

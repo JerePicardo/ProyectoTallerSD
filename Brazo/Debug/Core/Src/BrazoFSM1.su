@@ -1,3 +1,3 @@
-../Core/Src/BrazoFSM1.c:14:6:FSM_Brazo	56	static
+../Core/Src/BrazoFSM1.c:14:6:FSM_Brazo	40	static
 ../Core/Src/BrazoFSM1.c:98:6:FSM_Brazo_init	16	static
-../Core/Src/BrazoFSM1.c:102:9:procesar	32	static
+../Core/Src/BrazoFSM1.c:102:6:processComm	16	static

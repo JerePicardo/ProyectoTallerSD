@@ -18,14 +18,6 @@
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
 
-typedef enum {
-	FLAG_IDLE,
-	FLAG_PROCESAR,
-	FLAG_PARK,
-	FLAG_ERROR,
-	FLAG_TIMEOUT
-}flag_t ;
-
 typedef struct{
     int16_t acelerometros[2][3];
     int16_t giroscopios[2][3];
@@ -70,7 +62,6 @@ typedef enum {
 typedef struct{
 	estado actual;
 	uint8_t pos[7];
-	flag_t flag;
 	ErrorCode Error;
 	rx_data last_rf_comm;
 	pr_data last_pr_comm;
@@ -79,7 +70,7 @@ typedef struct{
 
 void FSM_Brazo(Brazo * B, evento event);
 void FSM_Brazo_init(Brazo * B);
-pr_data procesar(rx_data* d);
+void processComm(Brazo * B);
 
 
 #endif /* SRC_BRAZOFSM1_H_ */
