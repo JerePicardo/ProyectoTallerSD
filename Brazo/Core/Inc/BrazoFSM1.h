@@ -70,7 +70,6 @@ typedef struct{
 
 void FSM_Brazo(Brazo * B, evento event);
 void FSM_Brazo_init(Brazo * B);
-void processComm(Brazo * B);
 
 
 #endif /* SRC_BRAZOFSM1_H_ */

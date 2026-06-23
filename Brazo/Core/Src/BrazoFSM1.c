@@ -6,9 +6,14 @@
  */
 
 #include <BrazoFSM1.h>
+#include <math.h>
+#include <stdint.h>
 
 static rx_data rx_buffer;
 static char txt[32];
+static void processComm(Brazo *B);
+static float mapf(float x, float in_min, float in_max, float out_min, float out_max);
+static float clampf(float v, float min, float max);
 
 /* Process event and execute actions */
 void FSM_Brazo(Brazo *B, evento event) {
@@ -99,10 +104,67 @@ void FSM_Brazo_init(Brazo *B) {
 	B->actual = STATE_INICIO;
 }
 
-void processComm(Brazo * B) {
+#define RAD_TO_DEG      57.2957795f
+#define GYRO_SENS_250   131.0f      // LSB/(°/s) para ±250°/s
+#define ALPHA           0.98f       // filtro complementario
 
+static float clampf(float v, float min, float max){
+    if (v < min) return min;
+    if (v > max) return max;
+    return v;
+}
 
-	if (B->last_rf_comm.flag_dormir == 1) {
+static float mapf(float x, float in_min, float in_max, float out_min, float out_max){
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+static void processComm(Brazo *B)
+{
+    static float roll_f[2]  = {0.0f, 0.0f};
+    static float pitch_f[2] = {0.0f, 0.0f};
+    static uint8_t first = 1;
+    static uint32_t last_ms = 0;
+
+    uint32_t now = HAL_GetTick();
+    float dt = first ? 0.01f : ((now - last_ms) / 1000.0f);
+    last_ms = now;
+
+    for (int s = 0; s < 2; s++)
+    {
+        float ax = (float)B->last_rf_comm.acelerometros[s][0];
+        float ay = (float)B->last_rf_comm.acelerometros[s][1];
+        float az = (float)B->last_rf_comm.acelerometros[s][2];
+
+        float gx = (float)B->last_rf_comm.giroscopios[s][0] / GYRO_SENS_250;
+        float gy = (float)B->last_rf_comm.giroscopios[s][1] / GYRO_SENS_250;
+
+        float roll_acc  = atan2f(ay, az) * RAD_TO_DEG;
+        float pitch_acc = atan2f(-ax, sqrtf(ay * ay + az * az)) * RAD_TO_DEG;
+
+        if (first)
+        {
+            roll_f[s]  = roll_acc;
+            pitch_f[s] = pitch_acc;
+        }
+
+        roll_f[s]  = ALPHA * (roll_f[s]  + gx * dt) + (1.0f - ALPHA) * roll_acc;
+        pitch_f[s] = ALPHA * (pitch_f[s] + gy * dt) + (1.0f - ALPHA) * pitch_acc;
+    }
+
+    first = 0;
+
+    /*
+      OJO: estos rangos son de ejemplo.
+      Hay que ajustarlos según el recorrido mecánico real de cada servo.
+      Si pos[] no guarda grados sino PWM, cambia esta parte.
+    */
+
+    B->pos[0] = (int32_t)clampf(mapf(roll_f[0],  -45.0f,  45.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // hombro: abducción
+    B->pos[1] = (int32_t)clampf(mapf(pitch_f[0], -45.0f,  45.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // hombro: flex/ext
+    B->pos[2] = (int32_t)clampf(mapf(roll_f[1],  -90.0f,  90.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // muñeca: giro
+    B->pos[3] = (int32_t)clampf(mapf(pitch_f[1], -90.0f,  90.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // muñeca: flexión
+
+    if (B->last_rf_comm.flag_dormir == 1) {
 		B->last_pr_comm.dormido = 1;
 	}
 	/*
@@ -121,4 +183,3 @@ void processComm(Brazo * B) {
 	 CalcularServos(d, &out);
 	 */
 }
-
