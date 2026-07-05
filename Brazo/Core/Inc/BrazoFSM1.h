@@ -18,13 +18,20 @@
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
 
-typedef struct{
-    int16_t acelerometros[2][3];
-    int16_t giroscopios[2][3];
-    uint8_t pote;
-    uint8_t boton;
-    uint8_t secuencia;
-    uint8_t flag_dormir;
+typedef enum{
+  FLAG_DORMIR,
+  FLAG_MANUAL,
+  FLAG_APRETAR_PINZA
+} FLAG_t;
+
+typedef struct {
+  uint16_t acelerometros[2][3];
+  uint16_t giroscopios[2][3];
+  uint8_t pote;
+  uint32_t timeStamp;
+  uint8_t angle;
+  uint8_t channel;
+  FLAG_t flag;
 } rx_data;
 
 typedef struct{

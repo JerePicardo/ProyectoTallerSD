@@ -14,6 +14,9 @@ static char txt[32];
 static void processComm(Brazo *B);
 static float mapf(float x, float in_min, float in_max, float out_min, float out_max);
 static float clampf(float v, float min, float max);
+static uint32_t last_ms = 0;
+
+
 
 /* Process event and execute actions */
 void FSM_Brazo(Brazo *B, evento event) {
@@ -122,12 +125,14 @@ static void processComm(Brazo *B)
 {
     static float roll_f[2]  = {0.0f, 0.0f};
     static float pitch_f[2] = {0.0f, 0.0f};
-    static uint8_t first = 1;
-    static uint32_t last_ms = 0;
 
-    uint32_t now = HAL_GetTick();
-    float dt = first ? 0.01f : ((now - last_ms) / 1000.0f);
-    last_ms = now;
+    if(!last_ms){
+        last_ms = B->last_rf_comm.timeStamp;
+    	return;
+    }
+
+    float dt = ((B->last_rf_comm.timeStamp - last_ms) / 1000.0f);
+    last_ms = B->last_rf_comm.timeStamp;
 
     for (int s = 0; s < 2; s++)
     {
@@ -141,17 +146,9 @@ static void processComm(Brazo *B)
         float roll_acc  = atan2f(ay, az) * RAD_TO_DEG;
         float pitch_acc = atan2f(-ax, sqrtf(ay * ay + az * az)) * RAD_TO_DEG;
 
-        if (first)
-        {
-            roll_f[s]  = roll_acc;
-            pitch_f[s] = pitch_acc;
-        }
-
         roll_f[s]  = ALPHA * (roll_f[s]  + gx * dt) + (1.0f - ALPHA) * roll_acc;
         pitch_f[s] = ALPHA * (pitch_f[s] + gy * dt) + (1.0f - ALPHA) * pitch_acc;
     }
-
-    first = 0;
 
     /*
       OJO: estos rangos son de ejemplo.
@@ -164,7 +161,7 @@ static void processComm(Brazo *B)
     B->pos[2] = (int32_t)clampf(mapf(roll_f[1],  -90.0f,  90.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // muñeca: giro
     B->pos[3] = (int32_t)clampf(mapf(pitch_f[1], -90.0f,  90.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // muñeca: flexión
 
-    if (B->last_rf_comm.flag_dormir == 1) {
+    if (B->last_rf_comm.flag == FLAG_DORMIR) {
 		B->last_pr_comm.dormido = 1;
 	}
 	/*
