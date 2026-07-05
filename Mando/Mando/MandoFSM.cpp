@@ -14,28 +14,28 @@ case ESTADO_ACTIVE:
     switch(M->event) {
 
     case EVENTO_SAMPLE:
-        readSensors();
-        buildPacket();
-        transmitPacket();
+      //  readSensors();
+       // buildPacket();
+        //radio.write(&M->payload, sizeof(M->payload));
         break;
 
     case EVENTO_BUTTON_PRESS:
-        sendGripperCommand();
+        //sendGripperCommand();
         break;
 
     case EVENTO_SLEEP_TIMEOUT:
-        enterSleep();
-        M->state = ESTADO_SLEEP;
+        //enterSleep();
+        //M->state = ESTADO_SLEEP;
         break;
 
     case EVENTO_MANUAL_CMD:
-        M->state = ESTADO_MANUAL;
+        //M->state = ESTADO_MANUAL;
         break;
 
     case EVENTO_RF_TIMEOUT:
     case EVENTO_SENSOR_TIMEOUT:
     case EVENTO_ERROR:
-        M->state = ESTADO_ERROR;
+        //M->state = ESTADO_ERROR;
         break;
 
     default:
@@ -48,7 +48,7 @@ case ESTADO_SLEEP:
 
       if(M->event == EVENTO_WAKEUP)
     {
-
+/*
         disableMPUWakeup();
 
 
@@ -56,14 +56,14 @@ case ESTADO_SLEEP:
 
 
         M->state = ACTIVE;
-
+*/
     }
 
     break;
 
 case ESTADO_MANUAL:
 
-    processManualCommands();
+  //  processManualCommands();
 
     if(M->event == EVENTO_EXIT_MANUAL) {
         M->state = ESTADO_ACTIVE;
@@ -73,12 +73,12 @@ case ESTADO_MANUAL:
 
 case ESTADO_ERROR:
 
-    handleError();
+    //handleError();
 
-    if(errorRecovered()) {
+    /*if(errorRecovered()) {
         M->state = ESTADO_ACTIVE;
     }
-
+*/
     break;
 
 default:

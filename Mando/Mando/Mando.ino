@@ -33,11 +33,8 @@ static uint32_t lastMovement = 0;
 char c;
 uint32_t now;
 
-EventQueue eventQueue =
-{
-    .head = 0,
-    .tail = 0
-};
+EventQueue eventQueue ={0};
+
 
 void initButtonInterrupt(uint8_t BUTTON_PIN){
       pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -120,6 +117,7 @@ void initWatchdog()
 ISR(TIMER1_COMPA_vect)
 {
     sampleFlag = true;
+    //pushEvent(EVENTO_SAMPLE);
 }
 
 void enableMPUWakeup()
@@ -218,6 +216,7 @@ void enterSleep()
 
 
 }
+void eventUpdate(void);
 
 void setup() {
    Serial.begin(115200);
@@ -242,54 +241,69 @@ void setup() {
 }
 
 void loop() {
-    now = millis();
+   
 
-M.state =stateMachine(&M) ;  
+    eventUpdate();
 
+    while((M.event = popEvent()) != EVENTO_NONE)
+    {
+        stateMachine(&M);
+    }
+}
+
+
+
+void eventUpdate(void){
+     now = millis();
   if(buttonFlag)
 {
     buttonFlag = false;
-    M.event=EVENTO_BUTTON_PRESS;
+    pushEvent(EVENTO_BUTTON_PRESS);
+    lastMovement = now;
 }
 if(mpuMotionFlag)
 {
     mpuMotionFlag = false;
-    M.event=EVENTO_WAKEUP;
+   pushEvent(EVENTO_WAKEUP);
+   lastMovement=now;
 }
 
 if(watchdogFlag)
 {
     watchdogFlag = false;
-    M.event=EVENTO_WAKEUP;
+    pushEvent(EVENTO_WAKEUP);
  }
  if(sampleFlag)
 {
     sampleFlag = false;
-
-    M.event = EVENTO_SAMPLE;
+lastMovement = now;
+    pushEvent(EVENTO_SAMPLE);
 }
 if (!radio.isChipConnected()) {
-     M.event=EVENTO_RF_TIMEOUT;
+     pushEvent(EVENTO_RF_TIMEOUT);
 }
 
 if (mpu1.getDeviceID() != 0x68 ) {
-    M.event =EVENTO_SENSOR_TIMEOUT;
+    pushEvent(EVENTO_SENSOR_TIMEOUT);
 }
 
 if (mpu2.getDeviceID() != 0x69 ) {
-    M.event =EVENTO_SENSOR_TIMEOUT;
+    pushEvent(EVENTO_SENSOR_TIMEOUT);
 }
-if (digitalRead(BOTON_MANUAL)|| Serial.read() =='m') {
-    M.event = EVENTO_MANUAL_CMD;
+if(Serial.available())
+{
+    if(Serial.read()=='m')
+    {
+        pushEvent(EVENTO_MANUAL_CMD);
+        
+    }
 }
 
-if (now - lastSample >= SAMPLE_PERIOD_MS) {
-    lastSample = now;
-   M.event = EVENTO_SAMPLE;
-}
 
 if (now - lastMovement > SLEEP_TIME_MS) {
-    M.event = EVENTO_SLEEP_TIMEOUT;
+    pushEvent(EVENTO_SLEEP_TIMEOUT);
+    lastMovement = now;
 }
 
 }
+

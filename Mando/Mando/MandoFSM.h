@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <wire.h>
+#define EVENT_QUEUE_SIZE 20
 typedef enum{
 ESTADO_ACTIVE,
 ESTADO_SLEEP,
@@ -63,7 +64,7 @@ extern EventQueue eventQueue;
 bool pushEvent(evento ev);
 evento popEvent(void);
 evento updateEvents(void);
-estado MandoFSM(Mando * M);
+void stateMachine(Mando * M);
 
 //transmitir un mensaje 
 //FSM_update
