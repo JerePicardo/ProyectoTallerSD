@@ -173,9 +173,13 @@ int main(void) {
 //-------------------Deberia estar tod0 listo-------------------
 	ssd1306_Fill(Black);
 	ssd1306_SetCursor(0, 0);
-	ssd1306_WriteString("NRF24 listo", Font_6x8, White);
+	ssd1306_WriteString("NRF24 listoo", Font_6x8, White);
 	ssd1306_UpdateScreen();
 	HAL_Delay(2000);
+
+	park(B.pos);
+	mensaje_ssd("parkeado bien chill", Font_6x8, 0, 0, 1);
+
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -193,7 +197,7 @@ int main(void) {
 			}
 		}
 
-		if(HAL_GetTick() - UPaquete_TimeStamp > 10000){
+		if(HAL_GetTick() - UPaquete_TimeStamp > 100000){
 			FSM_Brazo(&B, EVENT_TIMEOUT);
 		}
 

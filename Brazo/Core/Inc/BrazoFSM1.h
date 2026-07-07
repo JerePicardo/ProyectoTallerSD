@@ -18,12 +18,6 @@
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
 
-typedef enum{
-  FLAG_DORMIR,
-  FLAG_MANUAL,
-  FLAG_APRETAR_PINZA
-} FLAG_t;
-
 typedef struct {
   uint16_t acelerometros[2][3];
   uint16_t giroscopios[2][3];
@@ -31,8 +25,13 @@ typedef struct {
   uint32_t timeStamp;
   uint8_t angle;
   uint8_t channel;
-  FLAG_t flag;
+  uint8_t flag;
 } rx_data;
+
+#define  FLAG_EMPTY           (1 << 0)
+#define  FLAG_DORMIR          (1 << 1)
+#define  FLAG_MANUAL          (1 << 2)
+#define  FLAG_APRETAR_PINZA   (1 << 3)
 
 typedef struct{
     uint8_t servo[7];

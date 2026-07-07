@@ -7,8 +7,8 @@ void UpdateBrazo(uint8_t posicion[7]){
 	PCA9685_SetServoAngle(2, posicion[2]);
 	PCA9685_SetServoAngle(3, posicion[3]);
 	PCA9685_SetServoAngle(4, posicion[4]);
-	PCA9685_SetServoAngle(3, posicion[5]);
-	PCA9685_SetServoAngle(4, posicion[6]);
+	PCA9685_SetServoAngle(5, posicion[5]);
+	PCA9685_SetServoAngle(6, posicion[6]);
 }
 
 void Brazo_MoveJoint(uint8_t posicion[7] , uint8_t ch, uint8_t deg){
@@ -28,13 +28,13 @@ void Brazo_MoveCartesian(uint8_t posicion[7], uint8_t x, uint8_t y, uint8_t z){
 }
 
 void park(uint8_t posicion[7]){
-	posicion[0] = 0;
+	posicion[0] = 180;
 	posicion[1] = 75;
-	posicion[2] = 15;
+	posicion[2] = 0;
 	posicion[3] = 180;
-	posicion[4] = 180;
-	posicion[5] = 0;
-	posicion[6] = 0;
+	posicion[4] = 90;
+	posicion[5] = 45;
+	posicion[6] = 30;
 	UpdateBrazo(posicion);
 }
 

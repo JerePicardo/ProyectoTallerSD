@@ -111,8 +111,8 @@ void FSM_Brazo_init(Brazo *B) {
 #define RAD_TO_DEG      57.2957795f
 #define GYRO_SENS_250   131.0f      // LSB/(°/s) para ±250°/s
 #define ALPHA           0.98f       // filtro complementario
-#define POTE_0			4096		// límite inferior potenciómetro codo
-#define POTE_180		0			// límite superior potenciómetro codo
+#define POTE_0			0			// límite inferior potenciómetro codo
+#define POTE_180		255			// límite superior potenciómetro codo
 
 static float clampf(float v, float min, float max){
     if (v < min) return min;
@@ -161,12 +161,20 @@ static void processComm(Brazo *B)
 
     B->pos[0] = (uint8_t)clampf(mapf(roll_f[0],  -45.0f,  45.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // hombro: abducción
     B->pos[1] = (uint8_t)clampf(mapf(pitch_f[0], -45.0f,  45.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // hombro: flex/ext
-    B->pos[3] = (uint8_t)clampf(mapf(roll_f[1],  -90.0f,  90.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // muñeca: giro
-    B->pos[4] = (uint8_t)clampf(mapf(pitch_f[1], -90.0f,  90.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // muñeca: flexión
+    B->pos[4] = (uint8_t)clampf(mapf(roll_f[1],  -90.0f,  90.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // muñeca: giro
+    B->pos[5] = (uint8_t)clampf(mapf(pitch_f[1], -90.0f,  90.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // muñeca: flexión
 
 
     //codo
-    B->pos[3] = 0;
+    B->pos[3] = B->last_rf_comm.pote;
+
+    //pinza
+    if(B->last_rf_comm.flag & FLAG_APRETAR_PINZA){
+    	B->pos[6] = 180;
+	} else{
+		B->pos[6] = 0;
+	}
+
 
 
     if (B->last_rf_comm.flag == FLAG_DORMIR) {
