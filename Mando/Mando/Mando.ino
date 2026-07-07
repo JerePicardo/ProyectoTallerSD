@@ -4,30 +4,19 @@
 #include <MPU6050.h>
 #include <avr/wdt.h>
 #include <avr/interrupt.h>
-
+#include "Definiciones.h"
 #include "Hardware.h"
 #include "MandoFSM.h"
 
-#define CE_PIN            9
-#define CSN_PIN           10
-#define fS                100
-#define SAMPLE_PERIOD_MS 20
-#define SLEEP_TIME_MS    10000
-#define BOTON_GARRA      9
-#define BOTON_MANUAL     10
-
 volatile bool buttonFlag      = false;
-volatile bool mpuMotionFlag   = false;
+volatile bool mpuMotionFlag = false;
 volatile bool watchdogFlag    = false;
 volatile bool sampleFlag      = false;
-
-const uint8_t BUTTON_PIN = 3;
-const uint8_t MPU_INT_PIN = 2;
 Mando M ={0};
 RF24 radio(CE_PIN, CSN_PIN);
 MPU6050 mpu1(0x68);
 MPU6050 mpu2(0x69);
-
+char txt[50];
 static uint32_t lastSample = 0;
 static uint32_t lastMovement = 0;
 char c;
@@ -36,30 +25,17 @@ uint32_t now;
 EventQueue eventQueue ={0};
 
 
-void initButtonInterrupt(uint8_t BUTTON_PIN){
-      pinMode(BUTTON_PIN, INPUT_PULLUP);
-
-    attachInterrupt(
-        digitalPinToInterrupt(BUTTON_PIN),
-        buttonISR,
-        FALLING
-    );
-}
-
-void buttonISR()
-{
-    buttonFlag = true;
-}
 
 
 
-void initMPUInterrupt(uint8_t MPU_INT_PIN){
 
-    pinMode(MPU_INT_PIN, INPUT);
+void initMPUInterrupt(uint8_t MPU_PIN){
+
+    pinMode(MPU_PIN, INPUT);
 
 
     attachInterrupt(
-        digitalPinToInterrupt(MPU_INT_PIN),
+        digitalPinToInterrupt(MPU_PIN),
        mpuMotionISR,
         RISING
     );
@@ -67,10 +43,6 @@ void initMPUInterrupt(uint8_t MPU_INT_PIN){
 }
 
 
-void mpuMotionISR()
-{
-    mpuMotionFlag = true;
-}
 
 
 void configureMPUs()
@@ -120,45 +92,7 @@ ISR(TIMER1_COMPA_vect)
     //pushEvent(EVENTO_SAMPLE);
 }
 
-void enableMPUWakeup()
-{
 
-    mpu1.setMotionDetectionThreshold(20);
-    mpu1.setMotionDetectionDuration(5);
-
-    mpu1.setIntMotionEnabled(true);
-
-
-
-    mpu2.setMotionDetectionThreshold(20);
-    mpu2.setMotionDetectionDuration(5);
-
-    mpu2.setIntMotionEnabled(true);
-
-
-    attachInterrupt(
-        digitalPinToInterrupt(MPU_INT_PIN),
-        mpuMotionISR,
-        RISING
-    );
-
-}
-
-
-void disableMPUWakeup()
-{
-
-    mpu1.setIntMotionEnabled(false);
-
-    mpu2.setIntMotionEnabled(false);
-
-
-
-    detachInterrupt(
-        digitalPinToInterrupt(MPU_INT_PIN)
-    );
-
-}
 
 void initSamplingTimer()
 {
@@ -182,12 +116,7 @@ void initSamplingTimer()
     sei();
 }
 
-void disableSamplingTimer(void){
-    cli();
-   TIMSK1 &= ~(1 << OCIE1A);
-    sei();
 
-}
 
 void configureRadio()
 {
@@ -241,7 +170,6 @@ void setup() {
 }
 
 void loop() {
-   
 
     eventUpdate();
 
@@ -291,11 +219,14 @@ if (mpu2.getDeviceID() != 0x69 ) {
     pushEvent(EVENTO_SENSOR_TIMEOUT);
 }
 if(Serial.available())
-{
-    if(Serial.read()=='m')
+{   
+    char c1 = Serial.read();
+
+    if(c1=='m')
     {
         pushEvent(EVENTO_MANUAL_CMD);
-        
+    }else if(c1=='q'){
+        pushEvent(EVENTO_EXIT_MANUAL);
     }
 }
 

@@ -3,6 +3,66 @@
 
 
 
+
+void initButtonInterrupt(uint8_t BTN_PIN){
+      pinMode(BTN_PIN, INPUT_PULLUP);
+
+    attachInterrupt(
+        digitalPinToInterrupt(BTN_PIN),
+        buttonISR,
+        FALLING
+    );
+}
+
+void buttonISR(void)
+{
+    buttonFlag = true;
+}
+
+void mpuMotionISR()
+{
+    mpuMotionFlag = true;
+}
+void enableMPUWakeup()
+{
+    mpu1.setMotionDetectionThreshold(20);
+    mpu1.setMotionDetectionDuration(5);
+    mpu1.setIntMotionEnabled(true);
+    mpu2.setMotionDetectionThreshold(20);
+    mpu2.setMotionDetectionDuration(5);
+    mpu2.setIntMotionEnabled(true);
+
+    attachInterrupt(
+        digitalPinToInterrupt(MPU_INT_PIN),
+        mpuMotionISR,
+        RISING
+    );
+
+}
+
+void disableMPUWakeup(void)
+{
+    mpu1.setIntMotionEnabled(false);
+    mpu2.setIntMotionEnabled(false);
+
+    detachInterrupt(
+        digitalPinToInterrupt(MPU_INT_PIN)
+    );
+
+}
+void enableSamplingTimer(void){
+  cli();
+TIMSK1 |= (1 << OCIE1A);
+sei();
+}
+
+void disableSamplingTimer(void){
+    cli();
+   TIMSK1 &= ~(1 << OCIE1A);
+    sei();
+
+}
+
 void readSensors(Mando *M)
 {
     int16_t ax, ay, az;
@@ -32,11 +92,19 @@ void readSensors(Mando *M)
 
     M->payload.pote = analogRead(A0);
 
-    M->payload.boton = digitalRead(BOTON_GARRA);
+    
 }
 
 void buildPacket(Mando *M)
 {
     M->payload.TIMESTAMP = millis();
+     if(M->gripperClosed)
+        M->payload.flag |= FLAG_APRETAR_PINZA;
+    else
+        M->payload.flag &= ~FLAG_APRETAR_PINZA;
 }
 
+void transmitPacket(Mando *M)
+{
+    radio.write(&M->payload, sizeof(M->payload));   
+}
