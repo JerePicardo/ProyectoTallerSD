@@ -5,8 +5,8 @@
 
 #define EVENT_QUEUE_SIZE 20
 
-#define CE_PIN            7
-#define CSN_PIN           8
+#define CE_PIN            8
+#define CSN_PIN           7
 #define fS                100
 #define SAMPLE_PERIOD_MS 100
 #define SLEEP_TIME_MS    10000
@@ -47,7 +47,7 @@ EVENTO_ERROR
 #define  FLAG_APRETAR_PINZA   (1 << 3)
 
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   int16_t acelerometros[2][3];
   int16_t giroscopios[2][3];
   uint8_t pote; //hay que hacer un map por que es de 10bitsa

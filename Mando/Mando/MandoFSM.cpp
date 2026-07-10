@@ -1,7 +1,7 @@
 #include "Arduino.h"
 #include "MandoFSM.h"
 
-
+uint8_t conta=0;
 
 
 //-------------------------------ESTADOS------------------------
@@ -32,9 +32,10 @@ case ESTADO_ACTIVE:
         M->state = ESTADO_SLEEP;
         break;
 
-    case EVENTO_MANUAL_CMD:
+     case EVENTO_MANUAL_CMD:
+        Serial.println(F("Modo manual"));
         M->state = ESTADO_MANUAL;
-        break;
+    break;
 
     case EVENTO_RF_TIMEOUT:
      Serial.println(F("ERROR: NRF24 desconectado"));
@@ -42,9 +43,9 @@ case ESTADO_ACTIVE:
      break;
 
     case EVENTO_SENSOR_TIMEOUT:
-    Serial.println(F("ERROR: MPU6050 no responde"));
-    M->state = ESTADO_ERROR;
-
+        Serial.println(F("ERROR: MPU6050 no responde"));
+        M->state = ESTADO_ERROR;
+    break;
     case EVENTO_ERROR:
         M->state = ESTADO_ERROR;
         break;
@@ -80,6 +81,11 @@ case ESTADO_MANUAL:
     break;
 
 case ESTADO_ERROR:
+conta++;
+    if(M->event == EVENTO_SAMPLE && conta==0){
+         M->state = ESTADO_ACTIVE;
+        break;
+    }
     if (M->event == EVENTO_MANUAL_CMD){
         M->state = ESTADO_MANUAL;
         break;
@@ -138,10 +144,10 @@ void processManualCommands(Mando *M)
     uint8_t canal;
     uint8_t angulo;
 
-    if(Serial.parseInt() >= 0)
-    {
-        canal = Serial.parseInt();
-        angulo = Serial.parseInt();
+ if(Serial.available())
+{
+    canal = Serial.parseInt();
+    angulo = Serial.parseInt();
 
         M->payload.channel = canal;
         M->payload.angle = angulo;

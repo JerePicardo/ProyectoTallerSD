@@ -4,9 +4,7 @@
 #include <RF24.h>
 #include <MPU6050.h>
 #include "definiciones.h"
-#define BOTON_GARRA 9
-#define CE_PIN 9
-#define CSN_PIN 10
+
 
 extern RF24 radio;
 

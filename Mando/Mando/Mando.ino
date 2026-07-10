@@ -7,7 +7,7 @@
 #include "Definiciones.h"
 #include "Hardware.h"
 #include "MandoFSM.h"
-
+uint8_t address[5] = { 0x45, 0x55, 0x67, 0x10, 0x21 };
 volatile bool buttonFlag      = false;
 volatile bool mpuMotionFlag = false;
 volatile bool watchdogFlag    = false;
@@ -121,11 +121,14 @@ void initSamplingTimer()
 void configureRadio()
 {
     radio.begin();
-
-    radio.setPALevel(RF24_PA_LOW);
-
+    radio.setPALevel(RF24_PA_MIN);
     radio.setDataRate(RF24_250KBPS);
-
+    radio.setChannel(100);
+    radio.setAutoAck(true);
+    radio.setCRCLength(RF24_CRC_8);
+    radio.setPayloadSize(sizeof(data));
+    radio.openWritingPipe(address);
+    radio.setRetries(4,10);
     radio.stopListening();
 }
 
@@ -177,6 +180,10 @@ void loop() {
     {
         stateMachine(&M);
     }
+    if(M.state == ESTADO_MANUAL)
+    {
+        processManualCommands(&M);
+    }
 }
 
 
@@ -207,17 +214,28 @@ if(watchdogFlag)
 lastMovement = now;
     pushEvent(EVENTO_SAMPLE);
 }
-if (!radio.isChipConnected()) {
-     pushEvent(EVENTO_RF_TIMEOUT);
-}
+static bool rfError=false;
 
+if(!radio.isChipConnected())
+{
+    if(!rfError)
+    {
+        rfError=true;
+        pushEvent(EVENTO_RF_TIMEOUT);
+    }
+}
+else
+{
+    rfError=false;
+}
+/*
 if (mpu1.getDeviceID() != 0x68 ) {
     pushEvent(EVENTO_SENSOR_TIMEOUT);
 }
-
+/*
 if (mpu2.getDeviceID() != 0x69 ) {
     pushEvent(EVENTO_SENSOR_TIMEOUT);
-}
+}*/
 if(Serial.available())
 {   
     char c1 = Serial.read();
@@ -225,9 +243,12 @@ if(Serial.available())
     if(c1=='m')
     {
         pushEvent(EVENTO_MANUAL_CMD);
+        return;
     }else if(c1=='q'){
         pushEvent(EVENTO_EXIT_MANUAL);
+        return;
     }
+
 }
 
 
