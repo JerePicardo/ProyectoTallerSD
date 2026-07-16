@@ -90,8 +90,17 @@ uint32_t UPaquete_TimeStamp;
 uint32_t UltimoWakeup;
 Brazo B;
 
+unsigned char UARTbuffer;
+
 volatile uint8_t nrf_irq = 0;
 volatile uint8_t Tick = 0;
+
+volatile uint8_t flag_m = 0;
+volatile uint8_t flag_a = 0;
+volatile uint8_t flag_mas = 0;
+volatile uint8_t flag_menos = 0;
+volatile uint8_t flag_select_servo = 0;
+
 /* USER CODE END 0 */
 
 /**
@@ -138,7 +147,7 @@ int main(void) {
 	HAL_Delay(800);
 //-------------------FSM------------------------------------
 
-	FSM_Brazo_init(&B);
+	FSM_Brazo_init(&B, &huart1);
 
 // INICIALIZAR NRF24 Hacer una funcion?? UN NRFinit()? tarea para jere? PutO?
 	csn_high();
@@ -173,8 +182,10 @@ int main(void) {
 //-------------------Deberia estar tod0 listo-------------------
 	ssd1306_Fill(Black);
 	ssd1306_SetCursor(0, 0);
-	ssd1306_WriteString("NRF24 listoo", Font_6x8, White);
+	ssd1306_WriteString("NRF24 listo", Font_6x8, White);
 	ssd1306_UpdateScreen();
+
+	HAL_UART_Receive_IT(&huart1, &UARTbuffer, 1);
 	HAL_Delay(2000);
 
 	park(B.pos);
@@ -206,6 +217,38 @@ int main(void) {
 				UltimoWakeup = HAL_GetTick();
 			}
 		}
+
+		if(flag_a){
+			flag_a = 0;
+			FSM_Brazo(&B, EVENT_AUTO);
+		}
+		if(flag_m){
+			flag_m = 0;
+			FSM_Brazo(&B, EVENT_MANUAL);
+		}
+
+		if(flag_mas){
+			flag_mas = 0;
+			FSM_Brazo(&B, EVENT_MAS);
+		}
+
+		if(flag_menos){
+			flag_menos = 0;
+			FSM_Brazo(&B, EVENT_MENOS);
+		}
+
+		if(flag_select_servo && B.actual == STATE_MANUAL){
+			flag_select_servo = 0;
+			uint8_t new_servo = UARTbuffer - '0';
+			changeManualServo(new_servo);
+			char cdeservo[30];
+			sprintf(cdeservo, "Moviendo servo n° %d", new_servo);
+			HAL_UART_Transmit(&huart1, (uint8_t *) cdeservo, strlen(cdeservo), HAL_MAX_DELAY);
+		}
+
+
+
+
 //-------------------------MANEJAR ERORRES--------------------------------
 
 		switch (B.Error) {
@@ -221,6 +264,8 @@ int main(void) {
 			break;
 		case ERR_DATA_CORRUPTED:
 			mensaje_ssd("ERROR DATA", Font_6x8, 0, 0, 1);
+			break;
+		default:
 			break;
 		}
 
@@ -554,14 +599,32 @@ static void MX_GPIO_Init(void) {
 
 /* USER CODE BEGIN 4 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-
 	if (GPIO_Pin == GPIO_PIN_0) {
 		nrf_irq = 1;
 	}
 }
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef * huart){
+	if(UARTbuffer == 'm'){
+		flag_m = 1;
+	}
+	if(UARTbuffer == 'a'){
+		flag_a = 1;
+	}
+	if(UARTbuffer == '+'){
+		flag_mas = 1;
+	}
+	if(UARTbuffer == '-'){
+		flag_menos = 1;
+	}
+	if(UARTbuffer >= '0' && UARTbuffer < '7'){
+		flag_select_servo = 1;
+	}
+	HAL_UART_Receive_IT(huart, &UARTbuffer, 1);
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance == TIM1) {
-
 	}
 }
 /* USER CODE END 4 */

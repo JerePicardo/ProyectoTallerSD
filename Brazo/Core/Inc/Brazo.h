@@ -11,10 +11,13 @@
 #include <BrazoFSM1.h>
 #include <pca9685.h>
 
-
+void changeManualServo(uint8_t new_servo);
 void UpdateBrazo(uint8_t posicion[7]);
 void Brazo_MoveJoint(uint8_t posicion[7],uint8_t ch, uint8_t deg);
 void Brazo_MoveCartesian(uint8_t posicion[7],uint8_t x, uint8_t y, uint8_t z);
 void park(uint8_t posicion[7]);
+uint8_t Brazo_getSelectedServo();
+void Brazo_increaseAngle(uint8_t pos[7]);
+void Brazo_decreaseAngle(uint8_t pos[7]);
 
 #endif /* INC_BRAZO_H_ */

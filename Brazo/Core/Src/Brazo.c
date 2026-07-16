@@ -1,5 +1,10 @@
 #include <Brazo.h>
 
+uint8_t selected_servo = 0;
+
+void changeManualServo(uint8_t new_servo){
+	selected_servo = new_servo;
+}
 
 void UpdateBrazo(uint8_t posicion[7]){
 	PCA9685_SetServoAngle(0, posicion[0]);
@@ -38,5 +43,24 @@ void park(uint8_t posicion[7]){
 	UpdateBrazo(posicion);
 }
 
+uint8_t Brazo_getSelectedServo(){
+	return selected_servo;
+}
+
+void Brazo_increaseAngle(uint8_t pos[7]){
+	if(pos[selected_servo] >= 180)
+		return;
+
+	pos[selected_servo]++;
+	PCA9685_SetServoAngle(selected_servo, pos[selected_servo]);
+}
+
+void Brazo_decreaseAngle(uint8_t pos[7]){
+	if(pos[selected_servo] >= 180)
+		return;
+
+	pos[selected_servo]--;
+	PCA9685_SetServoAngle(selected_servo, pos[selected_servo]);
+}
 
 

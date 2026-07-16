@@ -8,27 +8,31 @@
 #include <BrazoFSM1.h>
 #include <math.h>
 #include <stdint.h>
+#include <string.h>
 
 
 static rx_data rx_buffer;
-static char txt[32];
+static char txt[50];
 static void processComm(Brazo *B);
 static float mapf(float x, float in_min, float in_max, float out_min, float out_max);
 static float clampf(float v, float min, float max);
 static uint32_t last_ms = 0;
-
+UART_HandleTypeDef *huart;
+static uint8_t selected_servo = 0;
 
 
 /* Process event and execute actions */
 void FSM_Brazo(Brazo *B, evento event) {
 	switch (B->actual) {
 	case STATE_INICIO:
-		if (event == EVENT_NEW_DATA) {
+		switch(event) {
+		case EVENT_NEW_DATA:
 			B->actual = STATE_ACTIVO;
 
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 			nrf24_receive((uint8_t*) &rx_buffer, sizeof(rx_data));
 			// Print para debug
+			/*
 			sprintf(txt, "AX:%d", rx_buffer.acelerometros[0][0]);
 			mensaje_ssd(txt, Font_6x8, 0, 0, 1);
 			sprintf(txt, "Ay:%d", rx_buffer.acelerometros[0][1]);
@@ -36,11 +40,20 @@ void FSM_Brazo(Brazo *B, evento event) {
 			sprintf(txt, "Az:%d", rx_buffer.acelerometros[0][2]);
 			mensaje_ssd(txt, Font_6x8, 0, 2, 0);
 			mensaje_ssd("Sincronizado", Font_6x8, 0, 3, 0);
+			*/
 			//HAL_Delay(100);
 
 			B->last_rf_comm = rx_buffer;
 			processComm(B);
 			UpdateBrazo(B->pos);
+			break;
+		case EVENT_MANUAL:
+			B->actual = STATE_MANUAL;
+			char *msg = "ACTIVADO MODO MANUAL\r\n\n";
+			HAL_UART_Transmit(huart, (uint8_t *) msg, sizeof(msg), HAL_MAX_DELAY);
+			break;
+		default:
+			break;
 		}
 		break;
 	case STATE_ACTIVO:
@@ -49,6 +62,7 @@ void FSM_Brazo(Brazo *B, evento event) {
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 			nrf24_receive((uint8_t*) &rx_buffer, sizeof(rx_data));
 			// Print para debug
+			/*
 			sprintf(txt, "AX:%d", rx_buffer.acelerometros[0][0]);
 			mensaje_ssd(txt, Font_6x8, 0, 0, 1);
 			sprintf(txt, "Ay:%d", rx_buffer.acelerometros[0][1]);
@@ -56,6 +70,7 @@ void FSM_Brazo(Brazo *B, evento event) {
 			sprintf(txt, "Az:%d", rx_buffer.acelerometros[0][2]);
 			mensaje_ssd(txt, Font_6x8, 0, 2, 0);
 			mensaje_ssd("Sincronizado", Font_6x8, 0, 3, 0);
+			*/
 			//HAL_Delay(100);
 
 			B->last_rf_comm = rx_buffer;
@@ -71,18 +86,25 @@ void FSM_Brazo(Brazo *B, evento event) {
 		case EVENT_EVIL_DATA:
 			mensaje_ssd("err: datos corruptos", Font_6x8, 0, 0, 1);
 			break;
+		case EVENT_MANUAL:
+			B->actual = STATE_MANUAL;
+			char *msg = "ACTIVADO MODO MANUAL\r\n\n";
+			HAL_UART_Transmit(huart, (uint8_t *) msg, strlen(msg), HAL_MAX_DELAY);
+			break;
 		default:
 			break;
 	}
 	break;
 
 	case STATE_PARK:
-		if (event == EVENT_NEW_DATA) {
+		switch(event) {
+		case EVENT_NEW_DATA:
 			B->actual = STATE_ACTIVO;
 
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 			nrf24_receive((uint8_t*) &rx_buffer, sizeof(rx_data));
 			// Print para debug
+			/*
 			sprintf(txt, "AX:%d", rx_buffer.acelerometros[0][0]);
 			mensaje_ssd(txt, Font_6x8, 0, 0, 1);
 			sprintf(txt, "Ay:%d", rx_buffer.acelerometros[0][1]);
@@ -90,22 +112,54 @@ void FSM_Brazo(Brazo *B, evento event) {
 			sprintf(txt, "Az:%d", rx_buffer.acelerometros[0][2]);
 			mensaje_ssd(txt, Font_6x8, 0, 2, 0);
 			mensaje_ssd("Sincronizado", Font_6x8, 0, 3, 0);
+			*/
 			//HAL_Delay(100);
 
 			B->last_rf_comm = rx_buffer;
 			processComm(B);
 			UpdateBrazo(B->pos);
 			break;
+		case EVENT_MANUAL:
+			B->actual = STATE_MANUAL;
+			char *msg = "ACTIVADO MODO MANUAL\r\n\n";
+			HAL_UART_Transmit(huart, (uint8_t *) msg, strlen(msg), HAL_MAX_DELAY);
+			break;
+		default:
+			break;
 		}
 		break;
+
+	case STATE_MANUAL:
+		switch(event){
+		case EVENT_MAS:
+			Brazo_increaseAngle(B->pos);
+			selected_servo = Brazo_getSelectedServo();
+			sprintf(txt, "Posicion actual del servo %d: %d\r\n", selected_servo, B->pos[selected_servo]);
+			HAL_UART_Transmit(huart, (uint8_t *) txt, strlen(txt), HAL_MAX_DELAY);
+			break;
+		case EVENT_MENOS:
+			Brazo_decreaseAngle(B->pos);
+			selected_servo = Brazo_getSelectedServo();
+			sprintf(txt, "Posicion actual del servo %d: %d\r\n", selected_servo, B->pos[selected_servo]);
+			HAL_UART_Transmit(huart, (uint8_t *) txt, strlen(txt), HAL_MAX_DELAY);
+			break;
+		case EVENT_AUTO:
+			char *msgAuto = "CAMBIANDO A MODO AUTOMATICO\r\n\n";
+			HAL_UART_Transmit(huart, (uint8_t *) msgAuto, strlen(msgAuto), HAL_MAX_DELAY);
+		default:
+			break;
+		}
+		break;
+
 	default:
 		break;
 	}
 }
 
 /* Initialize FSM */
-void FSM_Brazo_init(Brazo *B) {
+void FSM_Brazo_init(Brazo *B, UART_HandleTypeDef *huartf) {
 	B->actual = STATE_INICIO;
+	huart = huartf;
 }
 
 #define RAD_TO_DEG      57.2957795f

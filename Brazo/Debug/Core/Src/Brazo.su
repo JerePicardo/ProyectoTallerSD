@@ -1,4 +1,8 @@
-../Core/Src/Brazo.c:4:6:UpdateBrazo	16	static
-../Core/Src/Brazo.c:14:6:Brazo_MoveJoint	16	static
-../Core/Src/Brazo.c:19:6:Brazo_MoveCartesian	16	static
-../Core/Src/Brazo.c:30:6:park	16	static
+../Core/Src/Brazo.c:5:6:changeManualServo	16	static
+../Core/Src/Brazo.c:9:6:UpdateBrazo	16	static
+../Core/Src/Brazo.c:19:6:Brazo_MoveJoint	16	static
+../Core/Src/Brazo.c:24:6:Brazo_MoveCartesian	16	static
+../Core/Src/Brazo.c:35:6:park	16	static
+../Core/Src/Brazo.c:46:9:Brazo_getSelectedServo	4	static
+../Core/Src/Brazo.c:50:6:Brazo_increaseAngle	24	static
+../Core/Src/Brazo.c:58:6:Brazo_decreaseAngle	24	static

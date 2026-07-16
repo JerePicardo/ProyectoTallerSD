@@ -52,7 +52,8 @@ typedef enum {
     STATE_INICIO,
     STATE_ACTIVO,
     STATE_ERROR,
-    STATE_PARK
+    STATE_PARK,
+	STATE_MANUAL
 } estado;
 
 /* Events */
@@ -62,7 +63,11 @@ typedef enum {
 	EVENT_EVIL_DATA,
     EVENT_TIMEOUT,
     EVENT_PARKEAR,
-    EVENT_DESPERTAR
+    EVENT_DESPERTAR,
+	EVENT_MANUAL,
+	EVENT_AUTO,
+	EVENT_MAS,
+	EVENT_MENOS
 } evento;
 
 typedef struct{
@@ -75,7 +80,7 @@ typedef struct{
 
 
 void FSM_Brazo(Brazo * B, evento event);
-void FSM_Brazo_init(Brazo * B);
+void FSM_Brazo_init(Brazo * B, UART_HandleTypeDef *huartf);
 
 
 #endif /* SRC_BRAZOFSM1_H_ */
