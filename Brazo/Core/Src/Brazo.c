@@ -56,7 +56,7 @@ void Brazo_increaseAngle(uint8_t pos[7]){
 }
 
 void Brazo_decreaseAngle(uint8_t pos[7]){
-	if(pos[selected_servo] >= 180)
+	if(pos[selected_servo] <= 0)
 		return;
 
 	pos[selected_servo]--;

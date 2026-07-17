@@ -1,4 +1,0 @@
-../Core/Src/Brazo.c:11:6:UpdateBrazo	1
-../Core/Src/Brazo.c:19:6:Brazo_MoveJoint	1
-../Core/Src/Brazo.c:25:6:Brazo_MoveCartesian	1
-../Core/Src/Brazo.c:30:6:Brazo_Stop	1

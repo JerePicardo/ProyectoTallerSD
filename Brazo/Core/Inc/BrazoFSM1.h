@@ -19,10 +19,10 @@
 #include "ssd1306_fonts.h"
 
 typedef struct {
-  uint16_t acelerometros[2][3];
-  uint16_t giroscopios[2][3];
+  int16_t acelerometros[2][3];
+  int16_t giroscopios[2][3];
   uint8_t pote;
-  uint32_t timeStamp;
+  uint16_t timeStamp;
   uint8_t angle;
   uint8_t channel;
   uint8_t flag;
