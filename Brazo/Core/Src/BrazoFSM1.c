@@ -12,7 +12,7 @@
 
 
 static rx_data rx_buffer;
-static char txt[50];
+static char txt[64];
 static void processComm(Brazo *B);
 static float mapf(float x, float in_min, float in_max, float out_min, float out_max);
 static float clampf(float v, float min, float max);
@@ -29,9 +29,11 @@ void FSM_Brazo(Brazo *B, evento event) {
 		case EVENT_NEW_DATA:
 			B->actual = STATE_ACTIVO;
 
-			//Debug prints:
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 			nrf24_receive((uint8_t*) &rx_buffer, sizeof(rx_data));
+
+			//Debug prints:
+			/*
 			sprintf(txt, "AX:%d\n\r", rx_buffer.acelerometros[0][0]);
 			HAL_UART_Transmit(huart, (uint8_t *) txt, strlen(txt), HAL_MAX_DELAY);
 			//ssd1306_Fill(Black);
@@ -46,18 +48,18 @@ void FSM_Brazo(Brazo *B, evento event) {
 			//ssd1306_SetCursor(0,30);
 			//ssd1306_WriteString(txt, Font_6x8, White);
 			//ssd1306_SetCursor(0,40);
-			HAL_UART_Transmit(huart, (uint8_t *) "SYNC Activo", sizeof("SYNC Activo\n\n\r"), HAL_MAX_DELAY);
+			HAL_UART_Transmit(huart, (uint8_t *) "SYNC Activo\n\n\r", sizeof("SYNC Activo\n\n\r"), HAL_MAX_DELAY);
 			//ssd1306_WriteString("SYNC Activo", Font_6x8, White);
 			//ssd1306_UpdateScreen();
-
+			*/
 			B->last_rf_comm = rx_buffer;
 			processComm(B);
 			UpdateBrazo(B->pos);
 			break;
 		case EVENT_MANUAL:
 			B->actual = STATE_MANUAL;
-			char *msg = "ACTIVADO MODO MANUAL\r\n\n";
-			HAL_UART_Transmit(huart, (uint8_t *) msg, sizeof(msg), HAL_MAX_DELAY);
+			txt = "ACTIVADO MODO MANUAL\n\n\r";
+			HAL_UART_Transmit(huart, (uint8_t *) txt, strlen(txt), HAL_MAX_DELAY);
 			break;
 		default:
 			break;
@@ -70,6 +72,7 @@ void FSM_Brazo(Brazo *B, evento event) {
 			nrf24_receive((uint8_t*) &rx_buffer, sizeof(rx_data));
 
 			//Debug prints:
+			/*
 			sprintf(txt, "AX:%d\n\r", rx_buffer.acelerometros[0][0]);
 			HAL_UART_Transmit(huart, (uint8_t *) txt, strlen(txt), HAL_MAX_DELAY);
 			//ssd1306_Fill(Black);
@@ -83,11 +86,18 @@ void FSM_Brazo(Brazo *B, evento event) {
 			HAL_UART_Transmit(huart, (uint8_t *) txt, strlen(txt), HAL_MAX_DELAY);
 			//ssd1306_SetCursor(0,30);
 			//ssd1306_WriteString(txt, Font_6x8, White);
-			//ssd1306_SetCursor(0,40);
-			HAL_UART_Transmit(huart, "SYNC Activo", sizeof("SYNC Activo\n\n\r"), HAL_MAX_DELAY);
-			//ssd1306_WriteString("SYNC Activo", Font_6x8, White);
-			//ssd1306_UpdateScreen();
 
+			if(B->last_rf_comm.flag & FLAG_MANUAL){
+				HAL_UART_Transmit(huart, (uint8_t *) "SYNC MANUAL\n\n\r", strlen("SYNC MANUAL\n\n\r"), HAL_MAX_DELAY);
+				//ssd1306_SetCursor(0,40);
+				//ssd1306_WriteString("SYNC Manual", Font_6x8, White);
+			}else{
+				HAL_UART_Transmit(huart, (uint8_t *) "SYNC Activo\n\n\r", strlen("SYNC Activo\n\n\r"), HAL_MAX_DELAY);
+				//ssd1306_SetCursor(0,40);
+				//ssd1306_WriteString("SYNC Activo", Font_6x8, White);
+				//ssd1306_UpdateScreen();
+			}
+			*/
 			B->last_rf_comm = rx_buffer;
 			processComm(B);
 			UpdateBrazo(B->pos);
@@ -97,13 +107,13 @@ void FSM_Brazo(Brazo *B, evento event) {
 			park(B->pos);
 
 			//Debug prints:
-			HAL_UART_Transmit(huart, (uint8_t *) "Parkeado bien chill", sizeof("Parkeado bien chill"), HAL_MAX_DELAY);
+			HAL_UART_Transmit(huart, (uint8_t *) "Parkeado bien chill\n\n\r", sizeof("Parkeado bien chill\n\n\r"), HAL_MAX_DELAY);
 			//mensaje_ssd("parkeado bien chill", Font_6x8, 0, 0, 1);
 			// HAL_TIM_Base_Start_IT(&htim1);
 
 			break;
 		case EVENT_EVIL_DATA:
-			HAL_UART_Transmit(huart, (uint8_t *) "Error: datos corruptos", sizeof("Error: datos corruptos"), HAL_MAX_DELAY);
+			HAL_UART_Transmit(huart, (uint8_t *) "Error: datos corruptos\n\n\r", sizeof("Error: datos corruptos\n\n\r"), HAL_MAX_DELAY);
 			//mensaje_ssd("err: datos corruptos", Font_6x8, 0, 0, 1);
 			break;
 		case EVENT_MANUAL:
@@ -125,6 +135,7 @@ void FSM_Brazo(Brazo *B, evento event) {
 			nrf24_receive((uint8_t*) &rx_buffer, sizeof(rx_data));
 
 			//Debug prints:
+			/*
 			sprintf(txt, "AX:%d\n\r", rx_buffer.acelerometros[0][0]);
 			HAL_UART_Transmit(huart, (uint8_t *) txt, strlen(txt), HAL_MAX_DELAY);
 			//ssd1306_Fill(Black);
@@ -139,9 +150,10 @@ void FSM_Brazo(Brazo *B, evento event) {
 			//ssd1306_SetCursor(0,30);
 			//ssd1306_WriteString(txt, Font_6x8, White);
 			//ssd1306_SetCursor(0,40);
-			HAL_UART_Transmit(huart, "SYNC Activo", sizeof("SYNC Activo\n\n\r"), HAL_MAX_DELAY);
+			HAL_UART_Transmit(huart, (uint8_t *) "SYNC Activo\n\n\r", strlen("SYNC Activo\n\n\r"), HAL_MAX_DELAY);
 			//ssd1306_WriteString("SYNC Activo", Font_6x8, White);
 			//ssd1306_UpdateScreen();
+			*/
 
 			B->last_rf_comm = rx_buffer;
 			processComm(B);
@@ -188,13 +200,23 @@ void FSM_Brazo(Brazo *B, evento event) {
 void FSM_Brazo_init(Brazo *B, UART_HandleTypeDef *huartf) {
 	B->actual = STATE_INICIO;
 	huart = huartf;
+	last_ms = 0;
 }
 
-#define RAD_TO_DEG      57.2957795f
-#define GYRO_SENS_250   131.0f      // LSB/(°/s) para ±250°/s
-#define ALPHA           0.70f       // filtro complementario
-#define POTE_0			0			// límite inferior potenciómetro codo
-#define POTE_180		255			// límite superior potenciómetro codo
+/*
+static float unwrapAngle(float angle, float *previous)
+{
+    while(angle - *previous > 180.0f)
+        angle -= 360.0f;
+
+    while(angle - *previous < -180.0f)
+        angle += 360.0f;
+
+    *previous = angle;
+
+    return angle;
+}
+*/
 
 static float clampf(float v, float min, float max){
     if (v < min) return min;
@@ -235,16 +257,11 @@ static void processComm(Brazo *B)
         pitch_f[s] = ALPHA * (pitch_f[s] + gy * dt) + (1.0f - ALPHA) * pitch_acc;
     }
 
-    /*
-      OJO: estos rangos son de ejemplo.
-      Hay que ajustarlos según el recorrido mecánico real de cada servo.
-      Si pos[] no guarda grados sino PWM, cambia esta parte.
-    */
 
-    B->pos[0] = (uint8_t)clampf(mapf(roll_f[1],  -90.0f,  90.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // muñeca: giro
-	B->pos[1] = (uint8_t)clampf(mapf(pitch_f[1], -90.0f,  90.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // muñeca: flexión
-	B->pos[4] = (uint8_t)clampf(mapf(roll_f[0],  -45.0f,  45.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // hombro: abducción
-	B->pos[5] = (uint8_t)clampf(mapf(pitch_f[0], -45.0f,  45.0f,   0.0f, 180.0f), 0.0f, 180.0f);  // hombro: flex/ext
+    B->pos[0] = (uint8_t)clampf(mapf(roll_f[1],  -90.0f,  90.0f,   0.0f, 180.0f), LIM_INF_SERVO_0, LIM_SUP_SERVO_0 );  // muñeca: giro
+	B->pos[1] = (uint8_t)clampf(mapf(pitch_f[1], -90.0f,  90.0f,   0.0f, 180.0f), LIM_INF_SERVO_1, LIM_SUP_SERVO_1);  // muñeca: flexión
+	B->pos[4] = (uint8_t)clampf(mapf(roll_f[0],  -45.0f,  45.0f,   0.0f, 180.0f), LIM_INF_SERVO_4, LIM_SUP_SERVO_4);  // hombro: abducción
+	B->pos[5] = (uint8_t)clampf(mapf(pitch_f[0], -45.0f,  45.0f,   0.0f, 180.0f), LIM_INF_SERVO_5, LIM_SUP_SERVO_5);  // hombro: flex/ext
 
 
     //codo
@@ -258,23 +275,8 @@ static void processComm(Brazo *B)
 	}
 
 
-
     if (B->last_rf_comm.flag == FLAG_DORMIR) {
 		B->last_pr_comm.dormido = 1;
+		park(B->pos);
 	}
-	/*
-	 if(!ComprobarRangos(d))
-	 {
-	 out.error = 1;
-	 return out;
-	 }
-
-	 ConvertirUnidades(d);
-
-	 FiltrarDatos(d);
-
-	 CalcularOrientacion(d, &out);
-
-	 CalcularServos(d, &out);
-	 */
 }

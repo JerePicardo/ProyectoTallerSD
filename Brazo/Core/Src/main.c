@@ -188,8 +188,8 @@ int main(void) {
 	HAL_UART_Receive_IT(&huart1, &UARTbuffer, 1);
 	HAL_Delay(2000);
 
-	park(B.pos);
-	mensaje_ssd("parkeado bien chill", Font_6x8, 0, 0, 1);
+	//park(B.pos);
+	//mensaje_ssd("parkeado bien chill", Font_6x8, 0, 0, 1);
 
 	/* USER CODE END 2 */
 

@@ -18,6 +18,41 @@
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
 
+#define  FLAG_EMPTY           (1 << 0)
+#define  FLAG_DORMIR          (1 << 1)
+#define  FLAG_MANUAL          (1 << 2)
+#define  FLAG_APRETAR_PINZA   (1 << 3)
+#define RAD_TO_DEG      57.2957795f
+#define GYRO_SENS_250   131.0f      // LSB/(°/s) para ±250°/s
+#define ALPHA           0.70f       // filtro complementario
+#define POTE_0			0			// límite inferior potenciómetro codo
+#define POTE_180		255			// límite superior potenciómetro codo
+
+#define LIM_SUP_SERVO_0 	170
+#define LIM_SUP_SERVO_1 	170
+#define LIM_SUP_SERVO_2 	170
+#define LIM_SUP_SERVO_3 	170
+#define LIM_SUP_SERVO_4 	170
+#define LIM_SUP_SERVO_5 	170
+#define LIM_SUP_SERVO_6 	170
+
+#define LIM_INF_SERVO_0 	10
+#define LIM_INF_SERVO_1 	10
+#define LIM_INF_SERVO_2 	10
+#define LIM_INF_SERVO_3 	10
+#define LIM_INF_SERVO_4 	10
+#define LIM_INF_SERVO_5 	10
+#define LIM_INF_SERVO_6 	10
+
+#define OFFSET_SERVO_0 	0
+#define OFFSET_SERVO_1 	1
+#define OFFSET_SERVO_2 	2
+#define OFFSET_SERVO_3 	3
+#define OFFSET_SERVO_4 	4
+#define OFFSET_SERVO_5 	5
+#define OFFSET_SERVO_6 	6
+
+
 typedef struct {
   int16_t acelerometros[2][3];
   int16_t giroscopios[2][3];
@@ -28,10 +63,6 @@ typedef struct {
   uint8_t flag;
 } rx_data;
 
-#define  FLAG_EMPTY           (1 << 0)
-#define  FLAG_DORMIR          (1 << 1)
-#define  FLAG_MANUAL          (1 << 2)
-#define  FLAG_APRETAR_PINZA   (1 << 3)
 
 typedef struct{
     uint8_t servo[7];
