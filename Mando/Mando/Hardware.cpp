@@ -98,7 +98,7 @@ void readSensors(Mando *M)
 void buildPacket(Mando *M)
 {
     M->payload.TIMESTAMP = millis();
-     if(M->gripperClosed)
+    if(M->gripperClosed)
         M->payload.flag |= FLAG_APRETAR_PINZA;
     else
         M->payload.flag &= ~FLAG_APRETAR_PINZA;

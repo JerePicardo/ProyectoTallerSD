@@ -9,10 +9,10 @@
 #include "MandoFSM.h"
 uint8_t address[5] = { 0x45, 0x55, 0x67, 0x10, 0x21 };
 volatile bool buttonFlag      = false;
-volatile bool mpuMotionFlag = false;
+volatile bool mpuMotionFlag   = false;
 volatile bool watchdogFlag    = false;
 volatile bool sampleFlag      = false;
-Mando M ={0};
+Mando M = {0};
 RF24 radio(CE_PIN, CSN_PIN);
 MPU6050 mpu1(0x68);
 MPU6050 mpu2(0x69);
@@ -21,35 +21,25 @@ static uint32_t lastSample = 0;
 static uint32_t lastMovement = 0;
 char c;
 uint32_t now;
+uint32_t debounce;  //timer para anti-rebotes
 
 EventQueue eventQueue ={0};
 
 
-
-
-
-
 void initMPUInterrupt(uint8_t MPU_PIN){
-
     pinMode(MPU_PIN, INPUT);
-
-
     attachInterrupt(
         digitalPinToInterrupt(MPU_PIN),
        mpuMotionISR,
         RISING
     );
-
 }
-
-
 
 
 void configureMPUs()
 {
     mpu1.initialize();
     mpu2.initialize();
-
     if(!mpu1.testConnection())
     {
         M.event = EVENTO_ERROR;
@@ -189,12 +179,13 @@ void loop() {
 
 
 void eventUpdate(void){
-     now = millis();
-  if(buttonFlag)
+    now = millis();
+  if(buttonFlag && now - debounce > 50);
 {
     buttonFlag = false;
     pushEvent(EVENTO_BUTTON_PRESS);
     lastMovement = now;
+    debounce = now;
 }
 if(mpuMotionFlag)
 {

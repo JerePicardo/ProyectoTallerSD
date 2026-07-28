@@ -232,6 +232,7 @@ static void processComm(Brazo *B)
 {
     static float roll_f[2]  = {0.0f, 0.0f};
     static float pitch_f[2] = {0.0f, 0.0f};
+    static float yaw_f[2] = {0.0f, 0.0f};
 
     if(!last_ms){
         last_ms = B->last_rf_comm.timeStamp;
@@ -249,17 +250,20 @@ static void processComm(Brazo *B)
 
         float gx = (float)B->last_rf_comm.giroscopios[s][0] / GYRO_SENS_250;
         float gy = (float)B->last_rf_comm.giroscopios[s][1] / GYRO_SENS_250;
+        float gz = (float)B->last_rf_comm.giroscopios[s][2] / GYRO_SENS_250;
 
         float roll_acc  = atan2f(ay, az) * RAD_TO_DEG;
         float pitch_acc = atan2f(-ax, sqrtf(ay * ay + az * az)) * RAD_TO_DEG;
 
         roll_f[s]  = ALPHA * (roll_f[s]  + gx * dt) + (1.0f - ALPHA) * roll_acc;
         pitch_f[s] = ALPHA * (pitch_f[s] + gy * dt) + (1.0f - ALPHA) * pitch_acc;
+        yaw_f[s] = ALPHA * (yaw_f[s] + gz * dt) + (1.0f - ALPHA ) * yaw_f[s];
     }
 
 
     B->pos[0] = (uint8_t)clampf(mapf(roll_f[1],  -90.0f,  90.0f,   0.0f, 180.0f), LIM_INF_SERVO_0, LIM_SUP_SERVO_0 );  // muñeca: giro
-	B->pos[1] = (uint8_t)clampf(mapf(pitch_f[1], -90.0f,  90.0f,   0.0f, 180.0f), LIM_INF_SERVO_1, LIM_SUP_SERVO_1);  // muñeca: flexión
+    B->pos[1] = (uint8_t)clampf(mapf(yaw_f[1],  -90.0f,  90.0f,   0.0f, 180.0f), 0.0f, 180.0f);
+	B->pos[2] = (uint8_t)clampf(mapf(pitch_f[1], -90.0f,  90.0f,   0.0f, 180.0f), LIM_INF_SERVO_1, LIM_SUP_SERVO_1);  // muñeca: flexión
 	B->pos[4] = (uint8_t)clampf(mapf(roll_f[0],  -45.0f,  45.0f,   0.0f, 180.0f), LIM_INF_SERVO_4, LIM_SUP_SERVO_4);  // hombro: abducción
 	B->pos[5] = (uint8_t)clampf(mapf(pitch_f[0], -45.0f,  45.0f,   0.0f, 180.0f), LIM_INF_SERVO_5, LIM_SUP_SERVO_5);  // hombro: flex/ext
 
