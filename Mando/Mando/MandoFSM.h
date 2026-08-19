@@ -16,8 +16,8 @@ void stateMachine(Mando * M);
 const char *eventoToString(evento ev);
 const char *estadoToString(estado st);
 void printStatus(Mando *M);
-void processManualCommands(Mando *M);
-//transmitir un mensaje 
+//void processManualCommands(Mando *M);
+///transmitir un mensaje 
 //FSM_update
 //FSM Innit
 //Printear Datos

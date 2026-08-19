@@ -7,105 +7,82 @@
 #include "Definiciones.h"
 #include "Hardware.h"
 #include "MandoFSM.h"
+
 uint8_t address[5] = { 0x45, 0x55, 0x67, 0x10, 0x21 };
 volatile bool buttonFlag      = false;
-volatile bool mpuMotionFlag   = false;
+volatile bool mpuMotionFlag = false;
 volatile bool watchdogFlag    = false;
 volatile bool sampleFlag      = false;
-Mando M = {0};
+Mando M ={0};
 RF24 radio(CE_PIN, CSN_PIN);
 MPU6050 mpu1(0x68);
 MPU6050 mpu2(0x69);
 char txt[50];
 static uint32_t lastSample = 0;
 static uint32_t lastMovement = 0;
-char c;
+//char c;
 uint32_t now;
-uint32_t debounce;  //timer para anti-rebotes
 
-EventQueue eventQueue ={0};
+EventQueue eventQueue = {0};
 
+void serialManager(Mando *M);
 
 void initMPUInterrupt(uint8_t MPU_PIN){
     pinMode(MPU_PIN, INPUT);
     attachInterrupt(
         digitalPinToInterrupt(MPU_PIN),
-       mpuMotionISR,
+        mpuMotionISR,
         RISING
     );
 }
 
-
-void configureMPUs()
-{
+void configureMPUs(){
     mpu1.initialize();
     mpu2.initialize();
-    if(!mpu1.testConnection())
-    {
+    if(!mpu1.testConnection()){
         M.event = EVENTO_ERROR;
     }
-
-    if(!mpu2.testConnection())
-    {
+    if(!mpu2.testConnection()){
         M.event = EVENTO_ERROR;
     }
    // Configuracion interrupcion movimiento
-
 }
 
-
-ISR(WDT_vect)
-{
-    watchdogFlag = true;
-}
-
-void initWatchdog()
-{
+void initWatchdog(){
     cli();
-
     MCUSR &= ~(1 << WDRF);
-
     WDTCSR |= (1 << WDCE) | (1 << WDE);
-
     WDTCSR =
         (1 << WDIE) |      // interrupt
         (1 << WDP3) |
         (1 << WDP0);       // 8s
-    
-  sei();
-
-}
-
-ISR(TIMER1_COMPA_vect)
-{
-    sampleFlag = true;
-    //pushEvent(EVENTO_SAMPLE);
-}
-
-
-
-void initSamplingTimer()
-{
-    cli();
-
-    TCCR1A = 0;
-    TCCR1B = 0;
-
-    TCNT1 = 0;
-
-    OCR1A = (16000000UL / 64UL / fS) - 1;
-
-    TCCR1B |= (1 << WGM12);
-
-    TCCR1B |=
-        (1 << CS11) |
-        (1 << CS10);
-
-    TIMSK1 |= (1 << OCIE1A);
-
     sei();
 }
 
+//Callback de watchdog
+ISR(WDT_vect){
+    watchdogFlag = true;
+}
+
+void initSamplingTimer(){
+    cli();
+    TCCR1A = 0;
+    TCCR1B = 0;
+    TCNT1 = 0;
+    OCR1A = (16000000UL / 64UL / fS) - 1;
+    TCCR1B |= (1 << WGM12);
+    TCCR1B |=
+        (1 << CS11) |
+        (1 << CS10);
+    TIMSK1 |= (1 << OCIE1A);
+    sei();
+}
+
+//Callback de timer para sampling
+ISR(TIMER1_COMPA_vect){
+    sampleFlag = true;
+    //pushEvent(EVENTO_SAMPLE);
+}
 
 
 void configureRadio()
@@ -124,129 +101,132 @@ void configureRadio()
 
 void enterSleep()
 {
-
     disableSamplingTimer();
-
-
     enableMPUWakeup();
-
-
     // aca despues va:
     // apagar NRF24
     // bajar frecuencia CPU
     // sleep_mode()
-
-
 }
+
 void eventUpdate(void);
 
-void setup() {
-   Serial.begin(115200);
-
+void setup(){
+    Serial.begin(115200);
     Wire.begin();
-
-    initButtonInterrupt(BUTTON_PIN);
-
-    initMPUInterrupt(MPU_INT_PIN);
-
+    initButtonInterrupt(BOTON_GARRA);
+//  initMPUInterrupt(MPU_INT_PIN);
     initSamplingTimer();
-
-    initWatchdog();
-
+//  initWatchdog();
     configureRadio();
-
     configureMPUs();
     disableMPUWakeup();
-
+    pinMode(A0, INPUT_PULLUP);
     sei();
-
 }
 
-void loop() {
-
+void loop(){
     eventUpdate();
-
+    serialManager(&M);
     while((M.event = popEvent()) != EVENTO_NONE)
     {
         stateMachine(&M);
-    }
-    if(M.state == ESTADO_MANUAL)
-    {
-        processManualCommands(&M);
-    }
+    }    
 }
 
 
+void serialManager(Mando *M){
+    if(!Serial.available())
+        return;
+
+    switch (M->state){
+    case ESTADO_ACTIVE:
+        char c = Serial.read();
+        if (c == 'm') {
+            pushEvent(EVENTO_MANUAL_CMD);
+        }
+        break;        
+    case ESTADO_MANUAL:
+        static char buffer[30];
+        int n = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
+        buffer[n] = '\0';
+        if (n == 0)
+            return;
+
+        if (buffer[0] == 'q') {
+            pushEvent(EVENTO_EXIT_MANUAL);
+            return;
+        } else {
+            uint8_t servo;
+            uint8_t angulo;
+            if (sscanf(buffer, "%hhu %hhu", &servo, &angulo) == 2) {
+                M->payload.channel = servo;
+                M->payload.angle = angulo;
+                buildPacket(M);
+                transmitPacket(M);
+                pushEvent(EVENTO_MANUAL_MOVE);
+            }
+        }
+        break;
+    default:
+        break;
+    }
+}
 
 void eventUpdate(void){
     now = millis();
-  if(buttonFlag && now - debounce > 50);
-{
-    buttonFlag = false;
-    pushEvent(EVENTO_BUTTON_PRESS);
-    lastMovement = now;
-    debounce = now;
-}
-if(mpuMotionFlag)
-{
-    mpuMotionFlag = false;
-   pushEvent(EVENTO_WAKEUP);
-   lastMovement=now;
-}
-
-if(watchdogFlag)
-{
-    watchdogFlag = false;
-    pushEvent(EVENTO_WAKEUP);
- }
- if(sampleFlag)
-{
-    sampleFlag = false;
-lastMovement = now;
-    pushEvent(EVENTO_SAMPLE);
-}
-static bool rfError=false;
-
-if(!radio.isChipConnected())
-{
-    if(!rfError)
-    {
-        rfError=true;
-        pushEvent(EVENTO_RF_TIMEOUT);
+    if(buttonFlag){
+        buttonFlag = false;
+        pushEvent(EVENTO_BUTTON_PRESS);
+        lastMovement = now;
     }
-}
-else
-{
-    rfError=false;
-}
-/*
-if (mpu1.getDeviceID() != 0x68 ) {
-    pushEvent(EVENTO_SENSOR_TIMEOUT);
-}
-/*
-if (mpu2.getDeviceID() != 0x69 ) {
-    pushEvent(EVENTO_SENSOR_TIMEOUT);
-}*/
-if(Serial.available())
-{   
-    char c1 = Serial.read();
-
-    if(c1=='m')
-    {
-        pushEvent(EVENTO_MANUAL_CMD);
-        return;
-    }else if(c1=='q'){
-        pushEvent(EVENTO_EXIT_MANUAL);
-        return;
+    if(mpuMotionFlag){
+        mpuMotionFlag = false;
+        pushEvent(EVENTO_WAKEUP);
+        lastMovement=now;
+    }
+    if(watchdogFlag){
+        watchdogFlag = false;
+        pushEvent(EVENTO_WAKEUP);
+    }
+    if(sampleFlag){
+        sampleFlag = false;
+        lastMovement = now;
+        pushEvent(EVENTO_SAMPLE);
     }
 
+    static bool rfError=false;
+    if(!radio.isChipConnected()){
+        if(!rfError){
+            rfError=true;
+            pushEvent(EVENTO_RF_TIMEOUT);
+        }
+    } else{
+        rfError=false;
+    }
+/*
+    if (mpu1.getDeviceID() != 0x68 ){
+        pushEvent(EVENTO_SENSOR_TIMEOUT);
+    }
+/*
+    if (mpu2.getDeviceID() != 0x69 ){
+        pushEvent(EVENTO_SENSOR_TIMEOUT);
+    }
+*/
+/*
+    if(Serial.available()){   
+        char c1 = Serial.read();
+        if(c1=='m'){
+            pushEvent(EVENTO_MANUAL_CMD);
+            return;
+        }else if(c1=='q'){
+            pushEvent(EVENTO_EXIT_MANUAL);
+            return;
+        }
+    }
+*/
+    if(now - lastMovement > SLEEP_TIME_MS){
+        pushEvent(EVENTO_SLEEP_TIMEOUT);
+        lastMovement = now;
+    }
 }
-
-
-if (now - lastMovement > SLEEP_TIME_MS) {
-    pushEvent(EVENTO_SLEEP_TIMEOUT);
-    lastMovement = now;
-}
-
-}
-

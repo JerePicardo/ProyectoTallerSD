@@ -10,7 +10,6 @@ void stateMachine(Mando * M) {
 switch(M->state) {
 
 case ESTADO_ACTIVE:
-
     switch(M->event) {
 
     case EVENTO_SAMPLE:
@@ -21,8 +20,7 @@ case ESTADO_ACTIVE:
         break;
 
     case EVENTO_BUTTON_PRESS:
-        M->gripperClosed = !M->gripperClosed;
-
+        M->gripperClosed = !M->gripperClosed; 
         break;
 
     case EVENTO_SLEEP_TIMEOUT:
@@ -68,20 +66,31 @@ case ESTADO_SLEEP:
     break;
 
 case ESTADO_MANUAL:
-    if(M->event == EVENTO_MANUAL_CMD ){
-        processManualCommands(M);
+    switch(M->event){
+        case EVENTO_MANUAL_MOVE:
+            M->payload.flag |= FLAG_MANUAL;
+            //buildPacket(M);
+            //transmitPacket(M);
+            Serial.print(F("Servo "));
+            Serial.print(M->payload.channel);
+            Serial.print(F(" -> "));
+            Serial.println(M->payload.angle);
         break;
-    }
-    if(M->event == EVENTO_EXIT_MANUAL) {
-        M->state = ESTADO_ACTIVE;
-        M->payload.flag &= ~FLAG_MANUAL;
+        
+        case EVENTO_EXIT_MANUAL: 
+            enableSamplingTimer();
+            M->payload.flag &= ~FLAG_MANUAL;
+            M->state = ESTADO_ACTIVE;
+            Serial.println(F("Saliendo de modo manual"));
         break;
-    }
-
+        
+        default:
+        break;
+}  
     break;
 
 case ESTADO_ERROR:
-conta++;
+conta = conta + 16;
     if(M->event == EVENTO_SAMPLE && conta==0){
          M->state = ESTADO_ACTIVE;
         break;
@@ -103,9 +112,6 @@ default:
 }
 
 }
-
-
-
 
 
 bool pushEvent(evento ev)
@@ -138,7 +144,7 @@ evento popEvent(void)
 
     return ev;
 }
-
+/*
 void processManualCommands(Mando *M)
 {
     uint8_t canal;
@@ -162,6 +168,8 @@ void processManualCommands(Mando *M)
         Serial.println(angulo);
     }
 }
+*/
+
 void printStatus(Mando *M)
 {
     static uint32_t lastPrint = 0;

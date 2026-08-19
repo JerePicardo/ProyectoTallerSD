@@ -1,22 +1,39 @@
 #include "Hardware.h"
 
 
-
+extern volatile bool buttonFlag;
 
 
 void initButtonInterrupt(uint8_t BTN_PIN){
-      pinMode(BTN_PIN, INPUT_PULLUP);
+    pinMode(BTN_PIN, INPUT_PULLUP);
+    cli();
 
-    attachInterrupt(
-        digitalPinToInterrupt(BTN_PIN),
-        buttonISR,
-        FALLING
-    );
+    // Habilita las interrupciones por cambio del puerto B
+    PCICR |= (1 << PCIE0);
+
+    // Habilita específicamente el pin D9 (PB1 = PCINT1)
+    PCMSK0 |= (1 << PCINT1);
+
+    sei();
+
 }
 
-void buttonISR(void)
+
+ISR(PCINT0_vect)
 {
-    buttonFlag = true;
+    static uint8_t lastState = HIGH;
+
+    uint8_t currentState = (PINB & (1 << PB1)) ? HIGH : LOW;
+
+    if (lastState == HIGH && currentState == LOW)
+    {
+        buttonFlag = true;
+    }
+    //Serial.println("IButton flage++++++++++++++++++++++++++++++++++++++++++++:");
+    //Serial.println(buttonFlag);
+
+    lastState = currentState;
+   
 }
 
 void mpuMotionISR()
@@ -60,7 +77,6 @@ void disableSamplingTimer(void){
     cli();
    TIMSK1 &= ~(1 << OCIE1A);
     sei();
-
 }
 
 void readSensors(Mando *M)
@@ -89,16 +105,18 @@ void readSensors(Mando *M)
     M->payload.giroscopios[1][0] = gx;
     M->payload.giroscopios[1][1] = gy;
     M->payload.giroscopios[1][2] = gz;
-
-    M->payload.pote = analogRead(A0);
-
     
+    //map(pote,0,255,0,90);
+    M->payload.pote=(uint8_t)(0.5263*analogRead(A0)-358.94);
+   /* if( M->gripperClosed == 1){
+        M->payload.flag|=FLAG_APRETAR_PINZA;
+    }*/
 }
 
 void buildPacket(Mando *M)
 {
     M->payload.TIMESTAMP = millis();
-    if(M->gripperClosed)
+     if(M->gripperClosed)
         M->payload.flag |= FLAG_APRETAR_PINZA;
     else
         M->payload.flag &= ~FLAG_APRETAR_PINZA;
@@ -106,5 +124,18 @@ void buildPacket(Mando *M)
 
 void transmitPacket(Mando *M)
 {
-    radio.write(&M->payload, sizeof(M->payload));   
+    //radio.write(&M->payload, sizeof(M->payload));   
+    bool ok = radio.write(&M->payload,sizeof(M->payload));
+   // Serial.println("Bot payload:");
+   //     Serial.println(M->payload.flag & (1<<FLAG_APRETAR_PINZA));
+ //Serial.println("IButton flage:");
+  //  Serial.println(buttonFlag);
+    /*serial.print("Tx:");
+    Serial.println(ok);
+    Serial.print("pote:");//analogRead(A0)
+    Serial.println(M->payload.pote);
+*/
+
+    //Serial.print("pote:");
+    //Serial.println(M->payload.pote);
 }
