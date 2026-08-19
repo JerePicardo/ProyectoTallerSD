@@ -88,7 +88,7 @@ static void MX_USART1_UART_Init(void);
 uint8_t addr[5] = { 0x45, 0x55, 0x67, 0x10, 0x21 };
 uint32_t UPaquete_TimeStamp;
 uint32_t UltimoWakeup;
-Brazo B;
+Brazo B = {0};
 
 unsigned char UARTbuffer;
 

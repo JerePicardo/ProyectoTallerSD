@@ -1,7 +1,3 @@
-
-
-
-
 #include <BrazoFSM1.h>
 #include <math.h>
 #include <stdint.h>
@@ -39,17 +35,14 @@ static Mahony imu2 = {
 
 
 
-
-
 //########################################			INIT MAQUINA			####################################################
 
 void FSM_Brazo_init(Brazo *B, UART_HandleTypeDef *huartf) {
 	B->actual = STATE_INICIO;
 	huart = huartf;
 	last_ms = 0;
+	park(B->pos);
 }
-
-
 
 
 
@@ -59,29 +52,26 @@ void FSM_Brazo_init(Brazo *B, UART_HandleTypeDef *huartf) {
 
 void FSM_Brazo(Brazo *B, evento event) {
 	switch (B->actual) {
+	case STATE_INICIO:
+		switch(event) {
+		case EVENT_NEW_DATA:
+			B->actual = STATE_ACTIVO;
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+			nrf24_receive((uint8_t*) &rx_buffer, sizeof(rx_data));
+			B->last_rf_comm = rx_buffer;
+			processComm(B);
+			UpdateBrazo(B->pos);
+			break;
+		case EVENT_MANUAL:
+			B->actual = STATE_MANUAL;
+			strcpy(txt,"ACTIVADO MODO MANUAL\n\n\r");
+			HAL_UART_Transmit(huart, (uint8_t *) txt, strlen(txt), HAL_MAX_DELAY);
+			break;
 
-
-			case STATE_INICIO:
-				switch(event) {
-				case EVENT_NEW_DATA:
-					B->actual = STATE_ACTIVO;
-					HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-					nrf24_receive((uint8_t*) &rx_buffer, sizeof(rx_data));
-					B->last_rf_comm = rx_buffer;
-					processComm(B);
-					UpdateBrazo(B->pos);
-					break;
-				case EVENT_MANUAL:
-					B->actual = STATE_MANUAL;
-					strcpy(txt,"ACTIVADO MODO MANUAL\n\n\r");
-					HAL_UART_Transmit(huart, (uint8_t *) txt, strlen(txt), HAL_MAX_DELAY);
-					break;
-
-				default:
-					break;
-				}
-				break;
-
+		default:
+			break;
+		}
+		break;
 
 	case STATE_ACTIVO:
 		switch (event) {
@@ -89,58 +79,27 @@ void FSM_Brazo(Brazo *B, evento event) {
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 			nrf24_receive((uint8_t*) &rx_buffer, sizeof(rx_data));
 
-		 //contador para actualizar pantalla cada 20 samples
-
+			//contador para actualizar pantalla cada 20 samples
 			if(screenTimer = 20){
 				screenTimer = 0;
-				/*sprintf(txt, "AX:%d\n\r", rx_buffer.acelerometros[0][0]);
 				ssd1306_Fill(Black);
-				ssd1306_SetCursor(0,10);
-				ssd1306_WriteString(txt, Font_6x8, White);
-				sprintf(txt, "Gy:%d\n\r", rx_buffer.giroscopios[1][1]);
-				ssd1306_SetCursor(0,20);
-
-
-				ssd1306_WriteString(txt, Font_6x8, White);
-				sprintf(txt, "pote:%d", rx_buffer.pote);
-				ssd1306_SetCursor(0,30);
-				ssd1306_WriteString(txt, Font_6x8, White);
-
-
-				ssd1306_UpdateScreen();
-
-				ssd1306_Fill(Black);
-				ssd1306_WriteString(txt, Font_6x8, White);
-				sprintf(txt, "X=0.%ld Y=0.%ld ",(long)(imu1.q.x*1000) ,(long)(imu1.q.y*1000) );
-				ssd1306_SetCursor(0,50);
-				ssd1306_WriteString(txt, Font_6x8, White);
-				ssd1306_UpdateScreen();
-				*/
-				ssd1306_Fill(Black);
-				sprintf(txt, "S0=0.%d S1=0.%d S2=%d",B->pos[0],B->pos[1],B->pos[2] );
+				sprintf(txt, "S0=%d S1=%d S2=%d",B->pos[0],B->pos[1],B->pos[2] );
 				ssd1306_SetCursor(0,20);
 				ssd1306_WriteString(txt, Font_6x8, White);
-				sprintf(txt, "S3=0.%d S4=0.%d S5=%d",B->pos[3],B->pos[4],B->pos[5] );
+				sprintf(txt, "S3=%d S4=%d S5=%d",B->pos[3],B->pos[4],B->pos[5] );
 				ssd1306_SetCursor(0,40);
 				ssd1306_WriteString(txt, Font_6x8, White);
 				ssd1306_UpdateScreen();
-
-
 			} else{
 				screenTimer++;
 			}
-
-
 
 			B->last_rf_comm = rx_buffer;
 			processComm(B);
 			UpdateBrazo(B->pos);
 			break;
 
-
-
 		case EVENT_TIMEOUT:
-
 			//HAY QUE ARMAR ESTE ESTADO EVENTO CUANDO ALGUIEN ESTE AL PEDO
 			break;
 
@@ -170,14 +129,7 @@ void FSM_Brazo(Brazo *B, evento event) {
 	}
 	break;
 
-
-
-
-
-
-
 	case STATE_PARK:
-
 		switch(event) {
 
 		case EVENT_NEW_DATA:
@@ -200,14 +152,7 @@ void FSM_Brazo(Brazo *B, evento event) {
 		}
 		break;
 
-
-
-
-
-
 	case STATE_MANUAL:
-
-
 		switch(event){
 		case EVENT_MAS:
 			Brazo_increaseAngle(B->pos);
@@ -289,12 +234,9 @@ static void processComm(Brazo *B)
 	B->pos[2] = (uint8_t)clampf(mapf(yaw_f[1], -45.0f,  45.0f,   0.0f, 180.0f), LIM_INF_SERVO_1, LIM_SUP_SERVO_1);  // muñeca: flexión
 	B->pos[4] = (uint8_t)clampf(mapf(roll_f[0],  -45.0f,  45.0f,   0.0f, 180.0f), LIM_INF_SERVO_4, LIM_SUP_SERVO_4);  // hombro: abducción
 	B->pos[5] = (uint8_t)clampf(mapf(yaw_f[0], -45.0f,  45.0f,   0.0f, 180.0f), LIM_INF_SERVO_5, LIM_SUP_SERVO_5);  // hombro: flex/ext
-	if(B->pos[5] < 30){
-
-	}
 
     //codo
-	B->pos[3] =( alpha_codo * B->last_rf_comm.pote + (1.0f - alpha_codo) * B->pos[3]);
+	B->pos[3] = (alpha_codo * B->last_rf_comm.pote + (1.0f - alpha_codo) * B->pos[3]);
 	//sprintf(txt, "pote:%d\n\r", (uint8_t)B->pos[3] );
 	//mensaje_ssd(txt,Font_6x8, 0, 40, 0);
     //pinza
