@@ -1,5 +1,5 @@
-../Core/Src/BrazoFSM1.c:25:6:FSM_Brazo	40	static
-../Core/Src/BrazoFSM1.c:195:6:FSM_Brazo_init	16	static
-../Core/Src/BrazoFSM1.c:201:14:clampf	24	static
-../Core/Src/BrazoFSM1.c:207:14:mapf	32	static
-../Core/Src/BrazoFSM1.c:211:13:processComm	72	static
+../Core/Src/BrazoFSM1.c:46:6:FSM_Brazo_init	16	static
+../Core/Src/BrazoFSM1.c:60:6:FSM_Brazo	56	static
+../Core/Src/BrazoFSM1.c:241:14:clampf	24	static
+../Core/Src/BrazoFSM1.c:247:14:mapf	32	static
+../Core/Src/BrazoFSM1.c:254:13:processComm	96	static

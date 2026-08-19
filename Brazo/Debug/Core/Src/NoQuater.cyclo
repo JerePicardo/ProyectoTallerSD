@@ -1,0 +1,3 @@
+../Core/Src/NoQuater.c:5:12:quatMultiply	1
+../Core/Src/NoQuater.c:16:6:quatNormalize	1
+../Core/Src/NoQuater.c:28:7:Mahony_Update	2

@@ -1,5 +1,6 @@
 "./Core/Src/Brazo.o"
 "./Core/Src/BrazoFSM1.o"
+"./Core/Src/NoQuater.o"
 "./Core/Src/main.o"
 "./Core/Src/pca9685.o"
 "./Core/Src/ssd1306.o"

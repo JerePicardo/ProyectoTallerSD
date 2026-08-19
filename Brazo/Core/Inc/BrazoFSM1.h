@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
-
+#include "NoQuater.h"
 #include "main.h"
 #include "Brazo.h"
 #include "NRF24.h"
@@ -22,9 +22,12 @@
 #define  FLAG_DORMIR          (1 << 1)
 #define  FLAG_MANUAL          (1 << 2)
 #define  FLAG_APRETAR_PINZA   (1 << 3)
+
 #define RAD_TO_DEG      57.2957795f
 #define GYRO_SENS_250   131.0f      // LSB/(°/s) para ±250°/s
+#define DEG_TO_RAD 		0.01745329252f
 #define ALPHA           0.70f       // filtro complementario
+#define alpha_codo		0.5
 #define POTE_0			0			// límite inferior potenciómetro codo
 #define POTE_180		255			// límite superior potenciómetro codo
 
@@ -57,7 +60,7 @@ typedef struct {
   int16_t acelerometros[2][3];
   int16_t giroscopios[2][3];
   uint8_t pote;
-  uint16_t timeStamp;
+  uint32_t timeStamp;
   uint8_t angle;
   uint8_t channel;
   uint8_t flag;

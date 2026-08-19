@@ -1,0 +1,3 @@
+../Core/Src/NoQuater.c:5:12:quatMultiply	40	static
+../Core/Src/NoQuater.c:16:6:quatNormalize	32	static
+../Core/Src/NoQuater.c:28:7:Mahony_Update	80	static

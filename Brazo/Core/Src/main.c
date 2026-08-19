@@ -182,7 +182,7 @@ int main(void) {
 //-------------------Deberia estar tod0 listo-------------------
 	ssd1306_Fill(Black);
 	ssd1306_SetCursor(0, 0);
-	ssd1306_WriteString("NRF24 listo", Font_6x8, White);
+	ssd1306_WriteString("NRF24 listo V2", Font_6x8, White);
 	ssd1306_UpdateScreen();
 
 	HAL_UART_Receive_IT(&huart1, &UARTbuffer, 1);
@@ -197,6 +197,7 @@ int main(void) {
 	/* USER CODE BEGIN WHILE */
 
 	while (1) {
+
 		if (nrf_irq) {
 			nrf_irq = 0;
 			UPaquete_TimeStamp = HAL_GetTick();
@@ -204,20 +205,21 @@ int main(void) {
 			if (stat & (1 << RX_DR)) {
 				FSM_Brazo(&B, EVENT_NEW_DATA);
 			} else {
-				FSM_Brazo(&B, EVENT_EVIL_DATA);
+				FSM_Brazo(&B, EVENT_EVIL_DATA);					 // MAL USADO ERA PARA DATOS CON PROBLEMAS
 			}
 		}
 
-		if(HAL_GetTick() - UPaquete_TimeStamp > 100000){
+		if(HAL_GetTick() - UPaquete_TimeStamp > 100000){ 		// NO SE VA A DORMIR
 			FSM_Brazo(&B, EVENT_TIMEOUT);
 		}
 
 		if (B.actual == STATE_PARK) {
-			if (HAL_GetTick() - UltimoWakeup > 5000) {
+			if (HAL_GetTick() - UltimoWakeup > 5000) {		// CUANDO VA A PARK? NO HACE FALTA DESPERTARLO NUNC ASI COMO ESTA
 				UltimoWakeup = HAL_GetTick();
 			}
 		}
 
+//########################################		UART JERE		###############################################
 		if(flag_a){
 			flag_a = 0;
 			FSM_Brazo(&B, EVENT_AUTO);
@@ -268,6 +270,8 @@ int main(void) {
 		default:
 			break;
 		}
+
+
 
 		/* USER CODE END WHILE */
 
@@ -625,6 +629,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef * huart){
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance == TIM1) {
+		//rutina de pantalla
 	}
 }
 /* USER CODE END 4 */
